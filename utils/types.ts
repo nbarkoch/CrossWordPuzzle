@@ -1,3 +1,5 @@
+import {VALID_DIRECTIONS} from './consts';
+
 export interface Position {
   row: number;
   col: number;
@@ -5,13 +7,10 @@ export interface Position {
 
 export type Direction = (typeof VALID_DIRECTIONS)[number];
 
-export const VALID_DIRECTIONS = [
-  {dx: 0, dy: -1},
-  {dx: 1, dy: -1},
-  {dx: 1, dy: 0},
-  {dx: 1, dy: 1},
-  {dx: 0, dy: 1},
-  {dx: -1, dy: 1},
-  {dx: -1, dy: 0},
-  {dx: -1, dy: -1},
-];
+export type WordSequence = {
+  blocks: Position[];
+  word: string;
+  start: Position;
+  end: Position;
+  direction: Direction;
+};

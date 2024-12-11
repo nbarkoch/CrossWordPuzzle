@@ -1,15 +1,16 @@
-import React, {useMemo} from 'react';
+import React, {useMemo, useState} from 'react';
 import {
   useSharedValue,
   useDerivedValue,
   withSpring,
   withTiming,
   Easing,
+  runOnJS,
 } from 'react-native-reanimated';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import {StyleSheet, Dimensions, View} from 'react-native';
 import {Canvas, Path, Skia, vec} from '@shopify/react-native-skia';
-import {Direction, Position, VALID_DIRECTIONS} from '../utils/types';
+import {Direction, Position, WordSequence} from '../utils/types';
 import LetterBlock from './LetterBlock';
 import WordDisplay from './WordDisplay';
 import {
@@ -18,19 +19,31 @@ import {
   isDirectionValid,
   updateSelectedBlocks,
 } from '../utils/blockCalcs';
+import WordsLines from './WordsLines';
+import {SEQUENCE_COLORS, VALID_DIRECTIONS} from '../utils/consts';
 
 const {width, height} = Dimensions.get('screen');
 
 const BLOCK_SIZE = 50;
 const GRID_TOP = 60;
-
 const INITIAL_DIRECTION = VALID_DIRECTIONS[0];
 
 type GridLettersProps = {blockSize: number};
 export default function GridLetters({
   blockSize = BLOCK_SIZE,
 }: GridLettersProps) {
-  // Create a grid of letters
+  // Add state for found sequences
+
+  const [sequences, setSequences] = useState<WordSequence[]>([]);
+
+  // Add state to track found letters
+  const foundLetters = useSharedValue<{[key: string]: boolean}>({});
+  const currentColorIndex = useSharedValue(0);
+
+  const getCurrentColor = () => {
+    'worklet';
+    return SEQUENCE_COLORS[currentColorIndex.value % SEQUENCE_COLORS.length];
+  };
 
   const {gridRows, gridCols, letterGrid} = useMemo(() => {
     const $gridRows = Math.floor((height - 200) / blockSize);
@@ -110,7 +123,14 @@ export default function GridLetters({
     });
   };
 
-  // Modify your gesture handlers to reset the word when needed
+  const isValidWord = (_: string): boolean => {
+    'worklet';
+    // For now, always return true as requested
+    // Replace this with actual word validation later
+    return true;
+  };
+
+  // Modified gesture handlers
   const gesture = Gesture.Pan()
     .minDistance(1)
     .onStart(event => {
@@ -193,6 +213,32 @@ export default function GridLetters({
     })
     .onEnd(() => {
       'worklet';
+      if (currentWord.value && isValidWord(currentWord.value)) {
+        // Add the sequence to found sequences
+        const newSequence: WordSequence = {
+          blocks: [...selectedBlocks.value],
+          word: currentWord.value,
+          start: selectedBlocks.value[0],
+          end: selectedBlocks.value[selectedBlocks.value.length - 1],
+          direction: currentDirection.value,
+        };
+
+        const updatedSequences = [...sequences, newSequence];
+        runOnJS(setSequences)(updatedSequences);
+
+        currentColorIndex.value =
+          (currentColorIndex.value + 1) % SEQUENCE_COLORS.length;
+
+        // Add found letters to the set
+        const newFoundLetters = {...foundLetters.value};
+        selectedBlocks.value.forEach(block => {
+          const key = `${block.row}-${block.col}`;
+          newFoundLetters[key] = true;
+        });
+        foundLetters.value = newFoundLetters;
+      }
+
+      // Reset current selection
       isDrawing.value = false;
       startBlock.value = {row: -1, col: -1};
       currentBlock.value = {row: -1, col: -1};
@@ -234,7 +280,12 @@ export default function GridLetters({
               }),
             )}
           </View>
-          {/* Canvas layer */}
+          {/* Permanent lines layer */}
+          <View style={styles.canvasContainer}>
+            <WordsLines sequences={sequences} blockSize={blockSize} />
+          </View>
+
+          {/* Active drawing layer */}
           <View style={styles.canvasContainer}>
             <Canvas style={StyleSheet.absoluteFill}>
               <Path
@@ -249,7 +300,7 @@ export default function GridLetters({
                 style="stroke"
                 strokeWidth={blockSize}
                 strokeCap="round"
-                color="rgba(160, 160, 255, 0.2)"
+                color={useDerivedValue(() => getCurrentColor().active)}
               />
               <Path
                 path={useDerivedValue(() => {
@@ -263,7 +314,7 @@ export default function GridLetters({
                 style="stroke"
                 strokeWidth={blockSize - 5}
                 strokeCap="round"
-                color="rgba(120, 120, 255, 0.3)"
+                color={useDerivedValue(() => getCurrentColor().active)}
               />
             </Canvas>
           </View>
@@ -277,6 +328,7 @@ export default function GridLetters({
                   row={rowIndex}
                   col={colIndex}
                   selectedBlocks={selectedBlocks}
+                  foundLetters={foundLetters}
                   blockSize={BLOCK_SIZE}
                 />
               )),
