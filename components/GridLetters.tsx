@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {
   useSharedValue,
   useDerivedValue,
@@ -22,17 +22,26 @@ import {
 const {width, height} = Dimensions.get('screen');
 
 const BLOCK_SIZE = 50;
-const GRID_ROWS = Math.floor((height - 300) / BLOCK_SIZE);
-const GRID_COLS = Math.floor((width - 10) / BLOCK_SIZE);
 const GRID_TOP = 60;
 
 const INITIAL_DIRECTION = VALID_DIRECTIONS[0];
 
-export default function GridLetters() {
+type GridLettersProps = {blockSize: number};
+export default function GridLetters({
+  blockSize = BLOCK_SIZE,
+}: GridLettersProps) {
   // Create a grid of letters
-  const [letterGrid] = React.useState(() =>
-    generateLetterGrid(GRID_COLS, GRID_ROWS),
-  );
+
+  const {gridRows, gridCols, letterGrid} = useMemo(() => {
+    const $gridRows = Math.floor((height - 200) / blockSize);
+    const $gridCols = Math.floor((width - 10) / blockSize);
+    const $letterGrid = generateLetterGrid($gridCols, $gridRows);
+    return {
+      gridRows: $gridRows,
+      gridCols: $gridCols,
+      letterGrid: $letterGrid,
+    };
+  }, [blockSize]);
 
   // Keep track of the current word being formed
   const currentWord = useSharedValue('');
@@ -50,8 +59,7 @@ export default function GridLetters() {
   const animatedLength = useSharedValue(0);
 
   const start = useDerivedValue(() => {
-    const x =
-      startBlock.value.col * BLOCK_SIZE + BLOCK_SIZE / 2 + BLOCK_SIZE / 5;
+    const x = startBlock.value.col * BLOCK_SIZE + BLOCK_SIZE / 2;
     const y = startBlock.value.row * BLOCK_SIZE + BLOCK_SIZE / 2;
     return vec(x, y);
   });
@@ -64,7 +72,6 @@ export default function GridLetters() {
     const x =
       startBlock.value.col * BLOCK_SIZE +
       BLOCK_SIZE / 2 +
-      BLOCK_SIZE / 5 +
       animatedDx.value * animatedLength.value * BLOCK_SIZE;
     const y =
       startBlock.value.row * BLOCK_SIZE +
@@ -77,9 +84,7 @@ export default function GridLetters() {
   // Function to update the current word based on selected blocks
   const updateCurrentWord = (blocks: Position[]) => {
     'worklet';
-    const word = blocks
-      .map(block => letterGrid[block.row][GRID_COLS - 1 - block.col])
-      .join('');
+    const word = blocks.map(block => letterGrid[block.row][block.col]).join('');
     currentWord.value = word;
   };
 
@@ -113,13 +118,13 @@ export default function GridLetters() {
       const col = Math.floor(event.absoluteX / BLOCK_SIZE);
       const row = Math.floor((event.absoluteY - GRID_TOP) / BLOCK_SIZE);
 
-      if (row >= 0 && row < GRID_ROWS && col >= 0 && col < GRID_COLS) {
+      if (row >= 0 && row < gridRows && col >= 0 && col < gridCols) {
         startBlock.value = {row, col};
         currentBlock.value = {row, col};
         currentDirection.value = INITIAL_DIRECTION;
         selectedBlocks.value = [{row, col}];
         isDrawing.value = true;
-        currentWord.value = letterGrid[row][GRID_COLS - col - 1];
+        currentWord.value = letterGrid[row][col];
 
         animatedLength.value = 0;
         animatedDx.value = 0;
@@ -137,9 +142,9 @@ export default function GridLetters() {
 
       if (
         row >= 0 &&
-        row < GRID_ROWS &&
+        row < gridRows &&
         col >= 0 &&
-        col < GRID_COLS &&
+        col < gridCols &&
         (row !== currentBlock.value.row || col !== currentBlock.value.col)
       ) {
         currentBlock.value = {row, col};
@@ -154,8 +159,8 @@ export default function GridLetters() {
             startBlock.value,
             newDirection,
             currentLength,
-            GRID_COLS,
-            GRID_ROWS,
+            gridCols,
+            gridRows,
           )
         ) {
           currentDirection.value = newDirection;
@@ -165,8 +170,8 @@ export default function GridLetters() {
             startBlock.value,
             {row, col},
             newDirection,
-            GRID_COLS,
-            GRID_ROWS,
+            gridCols,
+            gridRows,
           );
           animateLengthChange(steps);
           selectedBlocks.value = blocks;
@@ -176,8 +181,8 @@ export default function GridLetters() {
             startBlock.value,
             {row, col},
             currentDirection.value,
-            GRID_COLS,
-            GRID_ROWS,
+            gridCols,
+            gridRows,
           );
 
           animateLengthChange(steps);
@@ -207,12 +212,16 @@ export default function GridLetters() {
     <View style={styles.container}>
       <WordDisplay word={currentWord} />
       <GestureDetector gesture={gesture}>
-        <View style={styles.gridContainer}>
+        <View
+          style={[
+            styles.gridContainer,
+            {right: (width - gridCols * blockSize) / 2},
+          ]}>
           <View style={styles.blocksContainer}>
             {letterGrid.map((row, rowIndex) =>
               row.map((letter, colIndex) => {
                 const blockStyle = {
-                  left: colIndex * BLOCK_SIZE,
+                  right: colIndex * BLOCK_SIZE,
                   top: rowIndex * BLOCK_SIZE,
                   backgroundColor: '#ddd',
                 };
@@ -238,7 +247,7 @@ export default function GridLetters() {
                   return path;
                 })}
                 style="stroke"
-                strokeWidth={BLOCK_SIZE}
+                strokeWidth={blockSize}
                 strokeCap="round"
                 color="rgba(160, 160, 255, 0.2)"
               />
@@ -252,7 +261,7 @@ export default function GridLetters() {
                   return path;
                 })}
                 style="stroke"
-                strokeWidth={35}
+                strokeWidth={blockSize - 5}
                 strokeCap="round"
                 color="rgba(120, 120, 255, 0.3)"
               />
@@ -268,7 +277,6 @@ export default function GridLetters() {
                   row={rowIndex}
                   col={colIndex}
                   selectedBlocks={selectedBlocks}
-                  gridCols={GRID_COLS}
                   blockSize={BLOCK_SIZE}
                 />
               )),

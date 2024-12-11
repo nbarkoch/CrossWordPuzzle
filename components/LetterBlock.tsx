@@ -8,26 +8,26 @@ const LetterBlock: React.FC<{
   row: number;
   col: number;
   selectedBlocks: SharedValue<Position[]>;
-  gridCols: number;
   blockSize: number;
-}> = ({letter, row, col, selectedBlocks, gridCols, blockSize}) => {
+}> = ({letter, row, col, selectedBlocks, blockSize}) => {
   const animatedStyle = useAnimatedStyle(() => ({
     color: selectedBlocks.value.some(
-      block => block.row === row && block.col === gridCols - 1 - col,
+      block => block.row === row && block.col === col,
     )
       ? '#FFFFFF'
       : '#333333',
   }));
 
   const letterContainerStyle = {
-    left: col * blockSize,
+    right: col * blockSize,
     top: row * blockSize,
     width: blockSize,
     height: blockSize,
   };
   return (
     <View style={[styles.letterContainer, letterContainerStyle]}>
-      <Animated.Text style={[styles.letter, animatedStyle]}>
+      <Animated.Text
+        style={[styles.letter, {fontSize: blockSize / 2}, animatedStyle]}>
         {letter}
       </Animated.Text>
     </View>
