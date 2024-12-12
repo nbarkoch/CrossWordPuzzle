@@ -123,8 +123,11 @@ export default function GridLetters({
     });
   };
 
-  const isValidWord = (_: string): boolean => {
+  const isValidWord = (word: string): boolean => {
     'worklet';
+    if (word.length < 2) {
+      return false;
+    }
     // For now, always return true as requested
     // Replace this with actual word validation later
     return true;

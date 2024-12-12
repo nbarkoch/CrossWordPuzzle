@@ -34,7 +34,7 @@ export default function LetterBlock({
     return {
       transform: [
         {
-          scale: withSpring(isSelected ? 1.1 : 1, {
+          scale: withSpring(isSelected ? 1.15 : 1, {
             mass: 0.5,
             damping: 12,
             stiffness: 90,
@@ -57,7 +57,9 @@ export default function LetterBlock({
         },
       ]}>
       <Animated.View style={[styles.letter, animatedStyle]}>
-        <Text style={styles.text}>{letter}</Text>
+        <Text style={[styles.text, {fontSize: blockSize / 1.75}]}>
+          {letter}
+        </Text>
       </Animated.View>
     </View>
   );
@@ -77,7 +79,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   text: {
-    fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
   },
