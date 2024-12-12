@@ -26,6 +26,8 @@ const {width, height} = Dimensions.get('screen');
 
 const BLOCK_SIZE = 50;
 const GRID_TOP = 60;
+const GRID_BOTTOM = 300;
+const GRID_HORIZONTAL = 10;
 const INITIAL_DIRECTION = VALID_DIRECTIONS[0];
 
 type GridLettersProps = {blockSize: number};
@@ -46,8 +48,8 @@ export default function GridLetters({
   };
 
   const {gridRows, gridCols, letterGrid} = useMemo(() => {
-    const $gridRows = Math.floor((height - 200) / blockSize);
-    const $gridCols = Math.floor((width - 10) / blockSize);
+    const $gridRows = Math.floor((height - GRID_BOTTOM) / blockSize);
+    const $gridCols = Math.floor((width - GRID_HORIZONTAL) / blockSize);
     const $letterGrid = generateLetterGrid($gridCols, $gridRows);
     return {
       gridRows: $gridRows,

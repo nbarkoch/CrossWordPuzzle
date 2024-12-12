@@ -17,5 +17,4 @@ export const SEQUENCE_COLORS = [
   {active: 'rgba(153, 102, 255, 0.3)', saved: 'rgba(153, 102, 255, 0.5)'}, // Purple
   {active: 'rgba(255, 159, 64, 0.3)', saved: 'rgba(255, 159, 64, 0.5)'}, // Orange
   {active: 'rgba(46, 204, 113, 0.3)', saved: 'rgba(46, 204, 113, 0.5)'}, // Green
-  {active: 'rgba(241, 90, 141, 0.3)', saved: 'rgba(241, 90, 141, 0.5)'}, // Deep Pink
 ];
