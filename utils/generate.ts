@@ -144,7 +144,7 @@ const fillRemainingSpaces = (
   for (const word of placedWords) {
     const attempts = 2; // Try to place 2 decoy patterns per word
     for (let i = 0; i < attempts; i++) {
-      const decoyWord = generateDecoyPattern(word.toUpperCase());
+      const decoyWord = generateDecoyPattern(word);
       // Try to place the decoy pattern
       for (let attempt = 0; attempt < 10; attempt++) {
         const position = {
@@ -249,7 +249,8 @@ export const generateLetterGrid = (
 
   const validWords = words
     .filter(word => word.length <= Math.max(gridRows, gridCols))
-    .sort(() => Math.random() - 0.5);
+    .sort(() => Math.random() - 0.5)
+    .map(word => word.toUpperCase());
 
   if (validWords.length === 0) {
     throw new Error('No valid words provided');
@@ -262,15 +263,10 @@ export const generateLetterGrid = (
     const randomIndex = Math.floor(Math.random() * validWords.length);
     const word = validWords[randomIndex];
 
-    const placement = findValidPlacement(grid, word.toUpperCase());
+    const placement = findValidPlacement(grid, word);
 
     if (placement) {
-      placeWord(
-        grid,
-        word.toUpperCase(),
-        placement.position,
-        placement.direction,
-      );
+      placeWord(grid, word, placement.position, placement.direction);
       placedWords.push(word);
       validWords.splice(randomIndex, 1);
       remainingAttempts = validWords.length * 2;

@@ -29,9 +29,7 @@ const WordStatusDisplay = ({
     () =>
       placedWords.map(word => ({
         word,
-        isFound: foundSequences.some(
-          sequence => sequence.word.toUpperCase() === word.toUpperCase(),
-        ),
+        isFound: foundSequences.some(sequence => sequence.word === word),
       })),
     [placedWords, foundSequences],
   );
@@ -66,17 +64,15 @@ const WordStatusDisplay = ({
           item.isFound ? styles.foundBadge : styles.unfoundBadge,
         ]}>
         <Text style={[styles.wordText, item.isFound && styles.foundText]}>
-          {item.word.toUpperCase()}
+          {item.word}
         </Text>
       </Animated.View>
     );
   };
 
   useEffect(() => {
-    const normalizedPlacedWords = placedWords.map(word => word.toUpperCase());
-    const normalizedFoundWords = foundSequences.map(seq =>
-      seq.word.toUpperCase(),
-    );
+    const normalizedPlacedWords = placedWords.map(word => word);
+    const normalizedFoundWords = foundSequences.map(seq => seq.word);
 
     const allWordsFound = normalizedPlacedWords.every(word =>
       normalizedFoundWords.includes(word),
@@ -110,9 +106,6 @@ const WordStatusDisplay = ({
         })}
         style={styles.container}
         removeClippedSubviews={false}
-        initialNumToRender={20}
-        maxToRenderPerBatch={10}
-        windowSize={5}
       />
     </View>
   );

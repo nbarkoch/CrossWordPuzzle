@@ -126,7 +126,7 @@ export const isValidWord = (
   // Check if word exists in the provided words array
   let wordExists = false;
   for (let i = 0; i < words.length; i++) {
-    if (words[i].toUpperCase() === word) {
+    if (words[i] === word) {
       wordExists = true;
       break;
     }
@@ -139,7 +139,7 @@ export const isValidWord = (
   // Check if word has already been found
   // Note: Using a for loop instead of .some() for worklet compatibility
   for (let i = 0; i < foundSequences.length; i++) {
-    if (foundSequences[i].word.toUpperCase() === word) {
+    if (foundSequences[i].word === word) {
       return false;
     }
   }

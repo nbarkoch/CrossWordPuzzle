@@ -237,12 +237,15 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
     [placedWords, sequences],
   );
 
+  const gridHorizontalPadding = (width - gridCols * blockSize) / 2;
   // Modified gesture handlers
   const gesture = Gesture.Pan()
     .minDistance(1)
     .onStart(event => {
       'worklet';
-      const col = Math.floor(event.absoluteX / blockSize);
+      const col = Math.floor(
+        (event.absoluteX - gridHorizontalPadding) / blockSize,
+      );
       const row = Math.floor((event.absoluteY - GRID_TOP) / blockSize);
 
       if (row >= 0 && row < gridRows && col >= 0 && col < gridCols) {
@@ -363,11 +366,7 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
     <View style={styles.container}>
       <WordDisplay word={currentWord} />
       <GestureDetector gesture={gesture}>
-        <View
-          style={[
-            styles.gridContainer,
-            {right: (width - gridCols * blockSize) / 2},
-          ]}>
+        <View style={[styles.gridContainer, {right: gridHorizontalPadding}]}>
           <View style={styles.blocksContainer}>
             {letterGrid.map((row, rowIndex) =>
               row.map((_, colIndex) => {
