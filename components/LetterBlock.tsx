@@ -12,7 +12,6 @@ type LetterBlockProps = {
   row: number;
   col: number;
   selectedBlocks: SharedValue<Position[]>;
-  foundLetters: SharedValue<{[key: string]: boolean}>;
   blockSize: number;
 };
 
@@ -21,15 +20,12 @@ export default function LetterBlock({
   row,
   col,
   selectedBlocks,
-  foundLetters,
   blockSize,
 }: LetterBlockProps) {
   const animatedStyle = useAnimatedStyle(() => {
-    const key = `${row}-${col}`;
     const isSelected = selectedBlocks.value.some(
       block => block.row === row && block.col === col,
     );
-    const isFound = foundLetters.value[key];
 
     return {
       transform: [
@@ -41,7 +37,6 @@ export default function LetterBlock({
           }),
         },
       ],
-      backgroundColor: isFound ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
     };
   });
 
@@ -58,7 +53,7 @@ export default function LetterBlock({
       ]}>
       <Animated.View style={[styles.letter, animatedStyle]}>
         <Text style={[styles.text, {fontSize: blockSize / 1.75}]}>
-          {letter}
+          {letter.toLocaleUpperCase()}
         </Text>
       </Animated.View>
     </View>

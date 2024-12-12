@@ -23,7 +23,41 @@ function App(): JSX.Element {
   return (
     <SafeAreaView style={backgroundStyle}>
       <GestureHandlerRootView style={styles.sectionContainer}>
-        <GridLetters />
+        <GridLetters
+          blockSize={50}
+          words={[
+            'Hair',
+            'Hotel',
+            'Cannon',
+            'Poetry',
+            'Help',
+            'Forget',
+            'Kitchen',
+            'Dog',
+            'Mouse',
+            'Zoo',
+            'Food',
+            'Vegetables',
+            'Fruits',
+            'Evening',
+            'Wednesday',
+            'Pyramid',
+            'Pie',
+            'Smart',
+            'Hero',
+            'Favour',
+            'Support',
+            'Geometry',
+            'Math',
+            'Yesterday',
+            'Modern',
+            'Medical',
+            'Grass',
+            'Ball',
+            'Meditation',
+            'Magic',
+          ]}
+        />
       </GestureHandlerRootView>
     </SafeAreaView>
   );

@@ -1,17 +1,4 @@
-import {Direction, Position} from './types';
-
-export const generateLetterGrid = (gridCols: number, gridRows: number) => {
-  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const grid: string[][] = [];
-  for (let i = 0; i < gridRows; i++) {
-    const row: string[] = [];
-    for (let j = 0; j < gridCols; j++) {
-      row.push(letters[Math.floor(Math.random() * letters.length)]);
-    }
-    grid.push(row);
-  }
-  return grid;
-};
+import {Direction, Position, WordSequence} from './types';
 
 // Calculate angle between two positions in degrees (0-360)
 export const calculateAngle = (start: Position, end: Position): number => {
@@ -123,4 +110,39 @@ export const getValidDirection = (
     return {dx: 0, dy: 1};
   }
   return {dx: 1, dy: 1};
+};
+
+export const isValidWord = (
+  word: string,
+  words: string[],
+  foundSequences: WordSequence[],
+): boolean => {
+  'worklet';
+
+  if (word.length < 2) {
+    return false;
+  }
+
+  // Check if word exists in the provided words array
+  let wordExists = false;
+  for (let i = 0; i < words.length; i++) {
+    if (words[i].toUpperCase() === word) {
+      wordExists = true;
+      break;
+    }
+  }
+
+  if (!wordExists) {
+    return false;
+  }
+
+  // Check if word has already been found
+  // Note: Using a for loop instead of .some() for worklet compatibility
+  for (let i = 0; i < foundSequences.length; i++) {
+    if (foundSequences[i].word.toUpperCase() === word) {
+      return false;
+    }
+  }
+
+  return true;
 };

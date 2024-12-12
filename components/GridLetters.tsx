@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   useSharedValue,
   useDerivedValue,
@@ -14,32 +14,33 @@ import {Direction, Position, WordSequence} from '../utils/types';
 import LetterBlock from './LetterBlock';
 import WordDisplay from './WordDisplay';
 import {
-  generateLetterGrid,
   getValidDirection,
   isDirectionValid,
+  isValidWord,
   updateSelectedBlocks,
 } from '../utils/blockCalcs';
 import WordsLines from './WordsLines';
 import {SEQUENCE_COLORS, VALID_DIRECTIONS} from '../utils/consts';
+import {generateLetterGrid} from '../utils/generate';
+import WordStatusDisplay from './WordsStatusDisplay';
 
 const {width, height} = Dimensions.get('screen');
 
-const BLOCK_SIZE = 50;
 const GRID_TOP = 60;
 const GRID_BOTTOM = 300;
 const GRID_HORIZONTAL = 10;
 const INITIAL_DIRECTION = VALID_DIRECTIONS[0];
 
-type GridLettersProps = {blockSize: number};
-export default function GridLetters({
-  blockSize = BLOCK_SIZE,
-}: GridLettersProps) {
+type GridLettersProps = {blockSize: number; words: string[]};
+export default function GridLetters({blockSize, words}: GridLettersProps) {
   // Add state for found sequences
 
   const [sequences, setSequences] = useState<WordSequence[]>([]);
-
+  const [gridKey, setGridKey] = useState(0);
   // Add state to track found letters
-  const foundLetters = useSharedValue<{[key: string]: boolean}>({});
+  const [foundLetters, setFoundLetters] = useState<{[key: string]: boolean}>(
+    {},
+  );
   const currentColorIndex = useSharedValue(0);
 
   const getCurrentColor = () => {
@@ -47,16 +48,32 @@ export default function GridLetters({
     return SEQUENCE_COLORS[currentColorIndex.value % SEQUENCE_COLORS.length];
   };
 
-  const {gridRows, gridCols, letterGrid} = useMemo(() => {
+  // In your GridLetters component
+  const {gridRows, gridCols, letterGrid, placedWords} = useMemo(() => {
     const $gridRows = Math.floor((height - GRID_BOTTOM) / blockSize);
     const $gridCols = Math.floor((width - GRID_HORIZONTAL) / blockSize);
-    const $letterGrid = generateLetterGrid($gridCols, $gridRows);
-    return {
-      gridRows: $gridRows,
-      gridCols: $gridCols,
-      letterGrid: $letterGrid,
-    };
-  }, [blockSize]);
+    try {
+      const {grid: $letterGrid, placedWords: $placedWords} = generateLetterGrid(
+        $gridCols,
+        $gridRows,
+        words,
+      );
+      return {
+        gridRows: $gridRows,
+        gridCols: $gridCols,
+        letterGrid: $letterGrid,
+        placedWords: $placedWords,
+      };
+    } catch (error) {
+      return {
+        gridRows: 0,
+        gridCols: 0,
+        letterGrid: [],
+        placedWords: [],
+      };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blockSize, words, gridKey]);
 
   // Keep track of the current word being formed
   const currentWord = useSharedValue('');
@@ -74,8 +91,8 @@ export default function GridLetters({
   const animatedLength = useSharedValue(0);
 
   const start = useDerivedValue(() => {
-    const x = startBlock.value.col * BLOCK_SIZE + BLOCK_SIZE / 2;
-    const y = startBlock.value.row * BLOCK_SIZE + BLOCK_SIZE / 2;
+    const x = startBlock.value.col * blockSize + blockSize / 2;
+    const y = startBlock.value.row * blockSize + blockSize / 2;
     return vec(x, y);
   });
 
@@ -85,16 +102,61 @@ export default function GridLetters({
     }
 
     const x =
-      startBlock.value.col * BLOCK_SIZE +
-      BLOCK_SIZE / 2 +
-      animatedDx.value * animatedLength.value * BLOCK_SIZE;
+      startBlock.value.col * blockSize +
+      blockSize / 2 +
+      animatedDx.value * animatedLength.value * blockSize;
     const y =
-      startBlock.value.row * BLOCK_SIZE +
-      BLOCK_SIZE / 2 +
-      animatedDy.value * animatedLength.value * BLOCK_SIZE;
+      startBlock.value.row * blockSize +
+      blockSize / 2 +
+      animatedDy.value * animatedLength.value * blockSize;
 
     return vec(x, y);
   });
+
+  const resetGame = useCallback(() => {
+    // Reset all state variables
+    setSequences([]);
+    setGridKey(prev => prev + 1);
+
+    // Reset all shared values
+    setFoundLetters({});
+    currentColorIndex.value = 0;
+    currentWord.value = '';
+    endPointX.value = 0;
+    endPointY.value = 0;
+    isDrawing.value = false;
+    startBlock.value = {row: -1, col: -1};
+    currentBlock.value = {row: -1, col: -1};
+    selectedBlocks.value = [];
+    currentDirection.value = INITIAL_DIRECTION;
+
+    // Reset animations with timing
+    animatedLength.value = withTiming(0, {
+      duration: 200,
+      easing: Easing.out(Easing.ease),
+    });
+    animatedDx.value = withTiming(0, {
+      duration: 200,
+      easing: Easing.out(Easing.ease),
+    });
+    animatedDy.value = withTiming(0, {
+      duration: 200,
+      easing: Easing.out(Easing.ease),
+    });
+  }, [
+    currentColorIndex,
+    currentWord,
+    endPointX,
+    endPointY,
+    isDrawing,
+    startBlock,
+    currentBlock,
+    selectedBlocks,
+    currentDirection,
+    animatedLength,
+    animatedDx,
+    animatedDy,
+  ]);
 
   // Function to update the current word based on selected blocks
   const updateCurrentWord = (blocks: Position[]) => {
@@ -125,23 +187,63 @@ export default function GridLetters({
     });
   };
 
-  const isValidWord = (word: string): boolean => {
+  const resetSelection = useCallback(() => {
     'worklet';
-    if (word.length < 2) {
-      return false;
+    isDrawing.value = false;
+    startBlock.value = {row: -1, col: -1};
+    currentBlock.value = {row: -1, col: -1};
+    currentDirection.value = INITIAL_DIRECTION;
+    selectedBlocks.value = [];
+    currentWord.value = '';
+
+    animatedLength.value = withTiming(0, {
+      duration: 200,
+      easing: Easing.out(Easing.ease),
+    });
+    animatedDx.value = withTiming(0);
+    animatedDy.value = withTiming(0);
+  }, [
+    animatedDx,
+    animatedDy,
+    animatedLength,
+    currentBlock,
+    currentDirection,
+    currentWord,
+    isDrawing,
+    selectedBlocks,
+    startBlock,
+  ]);
+
+  useEffect(() => {
+    const hasMatch = sequences.some(
+      sequence =>
+        sequence.blocks.length === selectedBlocks.value.length &&
+        sequence.blocks.every(
+          (block, index) =>
+            block.row === selectedBlocks.value[index].row &&
+            block.col === selectedBlocks.value[index].col,
+        ),
+    );
+    if (hasMatch) {
+      resetSelection();
     }
-    // For now, always return true as requested
-    // Replace this with actual word validation later
-    return true;
-  };
+  }, [resetSelection, selectedBlocks.value, sequences]);
+
+  const $isValidWord = useCallback(
+    (word: string) => {
+      'worklet';
+      return isValidWord(word, placedWords, sequences);
+    },
+    [placedWords, sequences],
+  );
 
   // Modified gesture handlers
   const gesture = Gesture.Pan()
     .minDistance(1)
     .onStart(event => {
       'worklet';
-      const col = Math.floor(event.absoluteX / BLOCK_SIZE);
-      const row = Math.floor((event.absoluteY - GRID_TOP) / BLOCK_SIZE);
+      const col = Math.floor(event.absoluteX / blockSize);
+      const row = Math.floor((event.absoluteY - GRID_TOP) / blockSize);
 
       if (row >= 0 && row < gridRows && col >= 0 && col < gridCols) {
         startBlock.value = {row, col};
@@ -162,8 +264,8 @@ export default function GridLetters({
         return;
       }
 
-      const col = Math.floor(event.absoluteX / BLOCK_SIZE);
-      const row = Math.floor((event.absoluteY - GRID_TOP) / BLOCK_SIZE);
+      const col = Math.floor(event.absoluteX / blockSize);
+      const row = Math.floor((event.absoluteY - GRID_TOP) / blockSize);
 
       if (
         row >= 0 &&
@@ -218,7 +320,7 @@ export default function GridLetters({
     })
     .onEnd(() => {
       'worklet';
-      if (currentWord.value && isValidWord(currentWord.value)) {
+      if (currentWord.value && $isValidWord(currentWord.value)) {
         // Add the sequence to found sequences
         const newSequence: WordSequence = {
           blocks: [...selectedBlocks.value],
@@ -235,29 +337,27 @@ export default function GridLetters({
           (currentColorIndex.value + 1) % SEQUENCE_COLORS.length;
 
         // Add found letters to the set
-        const newFoundLetters = {...foundLetters.value};
+        const newFoundLetters = {...foundLetters};
         selectedBlocks.value.forEach(block => {
           const key = `${block.row}-${block.col}`;
           newFoundLetters[key] = true;
         });
-        foundLetters.value = newFoundLetters;
+        runOnJS(setFoundLetters)(newFoundLetters);
+      } else {
+        // Reset current selection
+        resetSelection();
       }
-
-      // Reset current selection
-      isDrawing.value = false;
-      startBlock.value = {row: -1, col: -1};
-      currentBlock.value = {row: -1, col: -1};
-      currentDirection.value = INITIAL_DIRECTION;
-      selectedBlocks.value = [];
-      currentWord.value = '';
-
-      animatedLength.value = withTiming(0, {
-        duration: 200,
-        easing: Easing.out(Easing.ease),
-      });
-      animatedDx.value = withTiming(0);
-      animatedDy.value = withTiming(0);
     });
+
+  const selectionPath = useDerivedValue(() => {
+    const path = Skia.Path.Make();
+
+    if (isDrawing.value) {
+      path.moveTo(start.value.x, start.value.y);
+      path.lineTo(end.value.x, end.value.y);
+    }
+    return path;
+  }, [sequences.length]);
 
   return (
     <View style={styles.container}>
@@ -270,11 +370,14 @@ export default function GridLetters({
           ]}>
           <View style={styles.blocksContainer}>
             {letterGrid.map((row, rowIndex) =>
-              row.map((letter, colIndex) => {
+              row.map((_, colIndex) => {
+                const key = `${rowIndex}-${colIndex}`;
                 const blockStyle = {
-                  right: colIndex * BLOCK_SIZE,
-                  top: rowIndex * BLOCK_SIZE,
-                  backgroundColor: '#ddd',
+                  right: colIndex * blockSize,
+                  top: rowIndex * blockSize,
+                  backgroundColor: foundLetters[key] ? '#ccc' : '#ddd',
+                  width: blockSize,
+                  height: blockSize,
                 };
                 return (
                   <View
@@ -294,28 +397,14 @@ export default function GridLetters({
           <View style={styles.canvasContainer}>
             <Canvas style={StyleSheet.absoluteFill}>
               <Path
-                path={useDerivedValue(() => {
-                  const path = Skia.Path.Make();
-                  if (isDrawing.value) {
-                    path.moveTo(start.value.x, start.value.y);
-                    path.lineTo(end.value.x, end.value.y);
-                  }
-                  return path;
-                })}
+                path={selectionPath}
                 style="stroke"
                 strokeWidth={blockSize}
                 strokeCap="round"
                 color={useDerivedValue(() => getCurrentColor().active)}
               />
               <Path
-                path={useDerivedValue(() => {
-                  const path = Skia.Path.Make();
-                  if (isDrawing.value) {
-                    path.moveTo(start.value.x, start.value.y);
-                    path.lineTo(end.value.x, end.value.y);
-                  }
-                  return path;
-                })}
+                path={selectionPath}
                 style="stroke"
                 strokeWidth={blockSize - 5}
                 strokeCap="round"
@@ -324,6 +413,7 @@ export default function GridLetters({
             </Canvas>
           </View>
           {/* Letters layer on top */}
+
           <View style={styles.lettersContainer}>
             {letterGrid.map((row, rowIndex) =>
               row.map((letter, colIndex) => (
@@ -333,14 +423,20 @@ export default function GridLetters({
                   row={rowIndex}
                   col={colIndex}
                   selectedBlocks={selectedBlocks}
-                  foundLetters={foundLetters}
-                  blockSize={BLOCK_SIZE}
+                  blockSize={blockSize}
                 />
               )),
             )}
           </View>
         </View>
       </GestureDetector>
+      <View style={styles.bottomContainer}>
+        <WordStatusDisplay
+          placedWords={placedWords}
+          foundSequences={sequences}
+          onGameComplete={resetGame}
+        />
+      </View>
     </View>
   );
 }
@@ -373,9 +469,8 @@ const styles = StyleSheet.create({
   },
   block: {
     position: 'absolute',
-    width: BLOCK_SIZE,
-    height: BLOCK_SIZE,
     borderWidth: 1,
     borderColor: '#ccc',
   },
+  bottomContainer: {position: 'absolute', bottom: 0, maxHeight: GRID_BOTTOM},
 });
