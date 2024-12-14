@@ -1,14 +1,6 @@
-import React, {useEffect, useRef} from 'react';
+import React, {useEffect} from 'react';
 import Animated, {FadeInDown, Layout} from 'react-native-reanimated';
-import {
-  FlatList,
-  StyleSheet,
-  Alert,
-  View,
-  Text,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-} from 'react-native';
+import {FlatList, StyleSheet, Alert, View, Text} from 'react-native';
 import {WordSequence} from '../utils/types';
 
 type WordStatusDisplayProps = {
@@ -22,9 +14,6 @@ const WordStatusDisplay = ({
   foundSequences,
   onGameComplete,
 }: WordStatusDisplayProps) => {
-  const flatListRef = useRef<FlatList>(null);
-  const scrollOffsetRef = useRef(0);
-
   const wordsData = React.useMemo(
     () =>
       placedWords.map(word => ({
@@ -33,21 +22,6 @@ const WordStatusDisplay = ({
       })),
     [placedWords, foundSequences],
   );
-
-  // Save scroll position
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    scrollOffsetRef.current = event.nativeEvent.contentOffset.x;
-  };
-
-  // Restore scroll position after content size change
-  const handleContentSizeChange = () => {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToOffset({
-        offset: scrollOffsetRef.current,
-        animated: false,
-      });
-    }
-  };
 
   const renderItem = ({
     item,
@@ -91,19 +65,10 @@ const WordStatusDisplay = ({
   return (
     <View style={styles.container}>
       <FlatList
-        ref={flatListRef}
         horizontal
         data={wordsData}
         renderItem={renderItem}
         keyExtractor={item => item.word}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        onContentSizeChange={handleContentSizeChange}
-        getItemLayout={(data, index) => ({
-          length: 50, // Approximate or fixed size of each item
-          offset: 50 * index,
-          index,
-        })}
         style={styles.container}
         removeClippedSubviews={false}
       />
@@ -134,6 +99,8 @@ const styles = StyleSheet.create({
   },
   foundBadge: {
     backgroundColor: '#D1FAE5',
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
   },
   wordText: {
     fontSize: 16,

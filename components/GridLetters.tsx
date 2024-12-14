@@ -23,6 +23,7 @@ import WordsLines from './WordsLines';
 import {SEQUENCE_COLORS, VALID_DIRECTIONS} from '../utils/consts';
 import {generateLetterGrid} from '../utils/generate';
 import WordStatusDisplay from './WordsStatusDisplay';
+import LinearGradient from 'react-native-linear-gradient';
 
 const {width, height} = Dimensions.get('screen');
 
@@ -49,31 +50,33 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
   };
 
   // In your GridLetters component
-  const {gridRows, gridCols, letterGrid, placedWords} = useMemo(() => {
-    const $gridRows = Math.floor((height - GRID_BOTTOM) / blockSize);
-    const $gridCols = Math.floor((width - GRID_HORIZONTAL) / blockSize);
-    try {
-      const {grid: $letterGrid, placedWords: $placedWords} = generateLetterGrid(
-        $gridCols,
-        $gridRows,
-        words,
-      );
-      return {
-        gridRows: $gridRows,
-        gridCols: $gridCols,
-        letterGrid: $letterGrid,
-        placedWords: $placedWords,
-      };
-    } catch (error) {
-      return {
-        gridRows: 0,
-        gridCols: 0,
-        letterGrid: [],
-        placedWords: [],
-      };
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [blockSize, words, gridKey]);
+
+  const {gridRows, gridCols, letterGrid, placedWords, gridHorizontalPadding} =
+    useMemo(() => {
+      const $gridRows = Math.floor((height - GRID_BOTTOM) / blockSize);
+      const $gridCols = Math.floor((width - GRID_HORIZONTAL) / blockSize);
+      try {
+        const {grid: $letterGrid, placedWords: $placedWords} =
+          generateLetterGrid($gridCols, $gridRows, words);
+        const $gridHorizontalPadding = (width - $gridCols * blockSize) / 2;
+        return {
+          gridRows: $gridRows,
+          gridCols: $gridCols,
+          gridHorizontalPadding: $gridHorizontalPadding,
+          letterGrid: $letterGrid,
+          placedWords: $placedWords,
+        };
+      } catch (error) {
+        return {
+          gridRows: 0,
+          gridCols: 0,
+          gridHorizontalPadding: 0,
+          letterGrid: [],
+          placedWords: [],
+        };
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [blockSize, words, gridKey]);
 
   // Keep track of the current word being formed
   const currentWord = useSharedValue('');
@@ -237,7 +240,6 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
     [placedWords, sequences],
   );
 
-  const gridHorizontalPadding = (width - gridCols * blockSize) / 2;
   // Modified gesture handlers
   const gesture = Gesture.Pan()
     .minDistance(1)
@@ -267,7 +269,9 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
         return;
       }
 
-      const col = Math.floor(event.absoluteX / blockSize);
+      const col = Math.floor(
+        (event.absoluteX - gridHorizontalPadding) / blockSize,
+      );
       const row = Math.floor((event.absoluteY - GRID_TOP) / blockSize);
 
       if (
@@ -363,10 +367,18 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
   }, [sequences.length]);
 
   return (
-    <View style={styles.container}>
+    <LinearGradient style={styles.container} colors={['#994CFD', '#6F54FB']}>
       <WordDisplay word={currentWord} />
       <GestureDetector gesture={gesture}>
-        <View style={[styles.gridContainer, {right: gridHorizontalPadding}]}>
+        <View
+          style={[
+            styles.gridContainer,
+            {
+              left: gridHorizontalPadding,
+              width: gridCols * blockSize,
+              height: gridRows * blockSize,
+            },
+          ]}>
           <View style={styles.blocksContainer}>
             {letterGrid.map((row, rowIndex) =>
               row.map((_, colIndex) => {
@@ -374,12 +386,19 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
                 const blockStyle = {
                   right: colIndex * blockSize,
                   top: rowIndex * blockSize,
-                  backgroundColor: foundLetters[key] ? '#ccc' : '#ddd',
-                  width: blockSize,
-                  height: blockSize,
+                  backgroundColor: foundLetters[key] ? '#ccc' : '#E5E7EB',
+                  width: blockSize - 1,
+                  height: blockSize - 1,
                 };
                 return (
-                  <View
+                  <LinearGradient
+                    colors={[
+                      '#FFFFFF',
+                      '#FDFFF8',
+                      '#FDFFF8',
+                      '#FDFFF8',
+                      '#F8EEF7',
+                    ]}
                     key={`${rowIndex}-${colIndex}`}
                     style={[styles.block, blockStyle]}
                   />
@@ -405,7 +424,7 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
               <Path
                 path={selectionPath}
                 style="stroke"
-                strokeWidth={blockSize - 5}
+                strokeWidth={blockSize - 8}
                 strokeCap="round"
                 color={useDerivedValue(() => getCurrentColor().active)}
               />
@@ -436,7 +455,7 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
           onGameComplete={resetGame}
         />
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -450,6 +469,11 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     position: 'absolute',
     top: GRID_TOP,
+    overflow: 'hidden',
+    borderRadius: 15,
+    borderWidth: 1,
+    backgroundColor: '#C4A7EC',
+    borderColor: '#C4A7EC',
   },
   blocksContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -468,8 +492,6 @@ const styles = StyleSheet.create({
   },
   block: {
     position: 'absolute',
-    borderWidth: 1,
-    borderColor: '#ccc',
   },
   bottomContainer: {position: 'absolute', bottom: 0, maxHeight: GRID_BOTTOM},
 });

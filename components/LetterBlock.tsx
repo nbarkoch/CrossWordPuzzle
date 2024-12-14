@@ -75,6 +75,6 @@ const styles = StyleSheet.create({
   },
   text: {
     fontWeight: 'bold',
-    color: '#333',
+    color: '#553F7Ed0',
   },
 });

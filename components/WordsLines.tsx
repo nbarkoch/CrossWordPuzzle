@@ -37,7 +37,7 @@ const WordsLines = React.memo(({sequences, blockSize}: WordsLinesProps) => {
             <Path
               path={path}
               style="stroke"
-              strokeWidth={blockSize - 5}
+              strokeWidth={blockSize - 8}
               strokeCap="round"
               color={color}
             />
