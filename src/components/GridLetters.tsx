@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   useSharedValue,
   useDerivedValue,
@@ -24,6 +24,7 @@ import {SEQUENCE_COLORS, VALID_DIRECTIONS} from '../utils/consts';
 import {generateLetterGrid} from '../utils/generate';
 import WordStatusDisplay from './WordsStatusDisplay';
 import LinearGradient from 'react-native-linear-gradient';
+import SuccessAnimation, {SuccessAnimationRef} from './SuccessAnimation';
 
 const {width, height} = Dimensions.get('screen');
 
@@ -44,10 +45,10 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
   );
   const currentColorIndex = useSharedValue(0);
 
-  const getCurrentColor = () => {
+  const getCurrentColor = useCallback(() => {
     'worklet';
     return SEQUENCE_COLORS[currentColorIndex.value % SEQUENCE_COLORS.length];
-  };
+  }, [currentColorIndex.value]);
 
   // In your GridLetters component
 
@@ -92,6 +93,7 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
   const animatedDx = useSharedValue(0);
   const animatedDy = useSharedValue(0);
   const animatedLength = useSharedValue(0);
+  const successAnimationRef = useRef<SuccessAnimationRef>(null);
 
   const start = useDerivedValue(() => {
     const x = startBlock.value.col * blockSize + blockSize / 2;
@@ -218,7 +220,8 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
   ]);
 
   useEffect(() => {
-    const hasMatch = sequences.some(
+    // Find the matching sequence and its index
+    const matchingSequenceIndex = sequences.findIndex(
       sequence =>
         sequence.blocks.length === selectedBlocks.value.length &&
         sequence.blocks.every(
@@ -227,10 +230,19 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
             block.col === selectedBlocks.value[index].col,
         ),
     );
-    if (hasMatch) {
+
+    if (matchingSequenceIndex !== -1) {
+      // Use the color based on the matching sequence's index
+      const colorIndex = matchingSequenceIndex % SEQUENCE_COLORS.length;
+      successAnimationRef.current?.play(
+        selectedBlocks.value,
+        SEQUENCE_COLORS[colorIndex].saved,
+        gridHorizontalPadding,
+        GRID_TOP,
+      );
       resetSelection();
     }
-  }, [resetSelection, selectedBlocks.value, sequences]);
+  }, [gridHorizontalPadding, resetSelection, selectedBlocks.value, sequences]);
 
   const $isValidWord = useCallback(
     (word: string) => {
@@ -374,6 +386,7 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
           style={[
             styles.gridContainer,
             {
+              top: GRID_TOP,
               left: gridHorizontalPadding,
               width: gridCols * blockSize,
               height: gridRows * blockSize,
@@ -431,7 +444,6 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
             </Canvas>
           </View>
           {/* Letters layer on top */}
-
           <View style={styles.lettersContainer}>
             {letterGrid.map((row, rowIndex) =>
               row.map((letter, colIndex) => (
@@ -448,6 +460,9 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
           </View>
         </View>
       </GestureDetector>
+      <View style={[styles.successAnimationContainer]}>
+        <SuccessAnimation ref={successAnimationRef} blockSize={blockSize} />
+      </View>
       <View style={styles.bottomContainer}>
         <WordStatusDisplay
           placedWords={placedWords}
@@ -468,7 +483,6 @@ const styles = StyleSheet.create({
   gridContainer: {
     ...StyleSheet.absoluteFillObject,
     position: 'absolute',
-    top: GRID_TOP,
     overflow: 'hidden',
     borderRadius: 15,
     borderWidth: 1,
@@ -492,6 +506,15 @@ const styles = StyleSheet.create({
   },
   block: {
     position: 'absolute',
+  },
+  successAnimationContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'visible',
+    pointerEvents: 'none',
   },
   bottomContainer: {position: 'absolute', bottom: 0, maxHeight: GRID_BOTTOM},
 });

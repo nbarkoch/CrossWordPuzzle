@@ -1,7 +1,8 @@
 import React, {useEffect} from 'react';
-import Animated, {FadeInDown, Layout} from 'react-native-reanimated';
-import {FlatList, StyleSheet, Alert, View, Text} from 'react-native';
+import Animated, {FadeInDown} from 'react-native-reanimated';
+import {FlatList, StyleSheet, Alert, Text} from 'react-native';
 import {WordSequence} from '../utils/types';
+import LinearGradient from 'react-native-linear-gradient';
 
 type WordStatusDisplayProps = {
   placedWords: string[];
@@ -32,7 +33,6 @@ const WordStatusDisplay = ({
     return (
       <Animated.View
         entering={FadeInDown}
-        layout={Layout}
         style={[
           styles.wordBadge,
           item.isFound ? styles.foundBadge : styles.unfoundBadge,
@@ -63,7 +63,9 @@ const WordStatusDisplay = ({
   }, [foundSequences, placedWords, onGameComplete]);
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={['transparent', '#c568ff']}
+      style={styles.container}>
       <FlatList
         horizontal
         data={wordsData}
@@ -72,7 +74,7 @@ const WordStatusDisplay = ({
         style={styles.container}
         removeClippedSubviews={false}
       />
-    </View>
+    </LinearGradient>
   );
 };
 
@@ -104,7 +106,7 @@ const styles = StyleSheet.create({
   },
   wordText: {
     fontSize: 16,
-    color: '#374151',
+    color: '#553F7Ed0',
     fontWeight: '500',
   },
   foundText: {

@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
   wordText: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#333',
+    color: '#553F7Ed0',
   },
 });
 

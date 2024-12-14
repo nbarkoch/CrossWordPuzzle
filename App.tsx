@@ -10,7 +10,7 @@ import {SafeAreaView, StyleSheet, useColorScheme} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
-import GridLetters from './components/GridLetters';
+import GridLetters from './src/components/GridLetters';
 
 function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
@@ -24,7 +24,7 @@ function App(): JSX.Element {
     <SafeAreaView style={backgroundStyle}>
       <GestureHandlerRootView style={styles.sectionContainer}>
         <GridLetters
-          blockSize={60}
+          blockSize={50}
           words={[
             'Hair',
             'Hotel',
