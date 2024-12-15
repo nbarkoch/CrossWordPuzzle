@@ -26,6 +26,8 @@ import WordStatusDisplay from './WordsStatusDisplay';
 import LinearGradient from 'react-native-linear-gradient';
 import SuccessAnimation, {SuccessAnimationRef} from './SuccessAnimation';
 
+import StripeProgress from './StripeProgression';
+
 const {width, height} = Dimensions.get('screen');
 
 const GRID_TOP = 60;
@@ -94,6 +96,7 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
   const animatedDy = useSharedValue(0);
   const animatedLength = useSharedValue(0);
   const successAnimationRef = useRef<SuccessAnimationRef>(null);
+  const progress = useSharedValue(0);
 
   const start = useDerivedValue(() => {
     const x = startBlock.value.col * blockSize + blockSize / 2;
@@ -134,6 +137,7 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
     currentBlock.value = {row: -1, col: -1};
     selectedBlocks.value = [];
     currentDirection.value = INITIAL_DIRECTION;
+    progress.value = 0;
 
     // Reset animations with timing
     animatedLength.value = withTiming(0, {
@@ -158,6 +162,7 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
     currentBlock,
     selectedBlocks,
     currentDirection,
+    progress,
     animatedLength,
     animatedDx,
     animatedDy,
@@ -240,9 +245,20 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
         gridHorizontalPadding,
         GRID_TOP,
       );
+      progress.value = withTiming(
+        Math.floor((sequences.length / placedWords.length) * 100),
+        {duration: 500},
+      );
       resetSelection();
     }
-  }, [gridHorizontalPadding, resetSelection, selectedBlocks.value, sequences]);
+  }, [
+    gridHorizontalPadding,
+    placedWords.length,
+    progress,
+    resetSelection,
+    selectedBlocks.value,
+    sequences,
+  ]);
 
   const $isValidWord = useCallback(
     (word: string) => {
@@ -464,6 +480,16 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
         <SuccessAnimation ref={successAnimationRef} blockSize={blockSize} />
       </View>
       <View style={styles.bottomContainer}>
+        <View style={styles.progress}>
+          <StripeProgress
+            width={300}
+            height={40}
+            progress={progress}
+            stripeWidth={5}
+            compression={5}
+            stripeSpeed={1500}
+          />
+        </View>
         <WordStatusDisplay
           placedWords={placedWords}
           foundSequences={sequences}
@@ -515,6 +541,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     overflow: 'visible',
     pointerEvents: 'none',
+  },
+  progress: {
+    position: 'absolute',
+    bottom: 100,
+    right: (width - 300) / 2,
   },
   bottomContainer: {position: 'absolute', bottom: 0, maxHeight: GRID_BOTTOM},
 });

@@ -24,7 +24,7 @@ function App(): JSX.Element {
     <SafeAreaView style={backgroundStyle}>
       <GestureHandlerRootView style={styles.sectionContainer}>
         <GridLetters
-          blockSize={50}
+          blockSize={60}
           words={[
             'Hair',
             'Hotel',
