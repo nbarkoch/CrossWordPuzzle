@@ -11,6 +11,7 @@ import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import GridLetters from './src/components/GridLetters';
+import AdBanner from './src/components/AdBanner';
 
 function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
@@ -86,6 +87,7 @@ function App(): JSX.Element {
           ]}
         />
       </GestureHandlerRootView>
+      <AdBanner backgroundColor={'#c568ff'} />
     </SafeAreaView>
   );
 }

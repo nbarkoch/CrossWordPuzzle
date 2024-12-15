@@ -483,7 +483,7 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
         <View style={styles.progress}>
           <StripeProgress
             width={300}
-            height={40}
+            height={30}
             progress={progress}
             stripeWidth={5}
             compression={5}
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
   },
   progress: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 70,
     right: (width - 300) / 2,
   },
   bottomContainer: {position: 'absolute', bottom: 0, maxHeight: GRID_BOTTOM},

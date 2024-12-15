@@ -1,5 +1,11 @@
 package com.crosswordpuzzle;
 
+import android.graphics.Color;
+import android.os.Bundle;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
+
 import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactActivityDelegate;
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint;
@@ -15,6 +21,18 @@ public class MainActivity extends ReactActivity {
   protected String getMainComponentName() {
     return "CrossWordPuzzle";
   }
+
+
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(null);
+    Window window = getWindow();
+    window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+    window.setNavigationBarColor(Color.parseColor("#6F54FBFF"));// Change to the desired color
+    window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // Hide navigation bar
+                                                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY); // Ensure it stays hidden (sticky immersive mode)
+  }
+
 
   /**
    * Returns the instance of the {@link ReactActivityDelegate}. Here we use a util class {@link
