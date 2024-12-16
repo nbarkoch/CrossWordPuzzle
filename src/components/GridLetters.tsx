@@ -81,6 +81,14 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [blockSize, words, gridKey]);
 
+  const gridDimensions = useMemo(
+    () => ({
+      width: gridCols * blockSize,
+      height: gridRows * blockSize,
+    }),
+    [gridCols, gridRows, blockSize],
+  );
+
   // Keep track of the current word being formed
   const currentWord = useSharedValue('');
 
@@ -227,31 +235,14 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
   useEffect(() => {
     // Find the matching sequence and its index
     const matchingSequenceIndex = sequences.findIndex(
-      sequence =>
-        sequence.blocks.length === selectedBlocks.value.length &&
-        sequence.blocks.every(
-          (block, index) =>
-            block.row === selectedBlocks.value[index].row &&
-            block.col === selectedBlocks.value[index].col,
-        ),
+      sequence => sequence.word === currentWord.value,
     );
 
     if (matchingSequenceIndex !== -1) {
-      // Use the color based on the matching sequence's index
-      const colorIndex = matchingSequenceIndex % SEQUENCE_COLORS.length;
-      successAnimationRef.current?.play(
-        selectedBlocks.value,
-        SEQUENCE_COLORS[colorIndex].saved,
-        gridHorizontalPadding,
-        GRID_TOP,
-      );
-      progress.value = withTiming(
-        Math.floor((sequences.length / placedWords.length) * 100),
-        {duration: 500},
-      );
       resetSelection();
     }
   }, [
+    currentWord.value,
     gridHorizontalPadding,
     placedWords.length,
     progress,
@@ -267,6 +258,28 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
     },
     [placedWords, sequences],
   );
+
+  const setSuccess = useCallback(() => {
+    const colorIndex = sequences.length % SEQUENCE_COLORS.length;
+
+    successAnimationRef.current?.play(
+      selectedBlocks.value,
+      SEQUENCE_COLORS[colorIndex].active,
+      gridHorizontalPadding,
+      GRID_TOP,
+    );
+
+    progress.value = withTiming(
+      Math.floor((sequences.length / placedWords.length) * 100),
+      {duration: 500},
+    );
+  }, [
+    gridHorizontalPadding,
+    placedWords.length,
+    progress,
+    selectedBlocks.value,
+    sequences.length,
+  ]);
 
   // Modified gesture handlers
   const gesture = Gesture.Pan()
@@ -366,6 +379,9 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
         };
 
         const updatedSequences = [...sequences, newSequence];
+
+        runOnJS(setSuccess)();
+
         runOnJS(setSequences)(updatedSequences);
 
         currentColorIndex.value =
@@ -404,8 +420,8 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
             {
               top: GRID_TOP,
               left: gridHorizontalPadding,
-              width: gridCols * blockSize,
-              height: gridRows * blockSize,
+              width: gridDimensions.width,
+              height: gridDimensions.height,
             },
           ]}>
           <View style={styles.blocksContainer}>
