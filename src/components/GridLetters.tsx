@@ -271,7 +271,7 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
 
     progress.value = withTiming(
       Math.floor((sequences.length / placedWords.length) * 100),
-      {duration: 500},
+      {duration: 1000},
     );
   }, [
     gridHorizontalPadding,
