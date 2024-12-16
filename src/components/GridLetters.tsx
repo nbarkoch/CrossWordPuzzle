@@ -486,7 +486,7 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
             height={30}
             progress={progress}
             stripeWidth={5}
-            compression={5}
+            compression={3}
             stripeSpeed={1500}
           />
         </View>

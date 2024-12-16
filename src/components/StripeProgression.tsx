@@ -14,7 +14,6 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 
-const EMPTY_COLOR: [string, string] = ['#a855f7', '#994CFD'];
 const FILLED_COLOR: [string, string] = ['#e77cff', '#d93cfc'];
 
 interface StripeProgressProps {
@@ -84,16 +83,6 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
     formatProgress(progress.value),
   );
 
-  const emptyStripes = React.useMemo(() => {
-    return createStripeElements(
-      width,
-      height,
-      stripeWidth,
-      compression,
-      EMPTY_COLOR,
-    );
-  }, [width, height, stripeWidth, compression]);
-
   const filledStripes = React.useMemo(() => {
     return createStripeElements(
       width,
@@ -141,13 +130,7 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
       </View>
 
       {/* Empty stripes as mask layer */}
-      <Animated.View style={[styles.progressMask, maskStyle]}>
-        <View style={styles.stripesContainer}>
-          <Animated.View style={animatedStyle}>
-            <Canvas style={{width, height}}>{emptyStripes}</Canvas>
-          </Animated.View>
-        </View>
-      </Animated.View>
+      <Animated.View style={[styles.progressMask, maskStyle]} />
 
       <View style={styles.textContainer}>
         <Animated.Text style={styles.text}>{displayText}</Animated.Text>
@@ -173,7 +156,7 @@ const styles = StyleSheet.create({
     left: 0,
     height: '100%',
     overflow: 'hidden',
-    backgroundColor: 'transparent',
+    backgroundColor: '#9845d7c0',
   },
   textContainer: {
     position: 'absolute',

@@ -10,11 +10,16 @@ export const VALID_DIRECTIONS = [
 ];
 
 export const SEQUENCE_COLORS = [
-  {active: 'rgba(255, 99, 132, 0.3)', saved: 'rgba(255, 99, 132, 0.5)'}, // Pink
-  {active: 'rgba(54, 162, 235, 0.3)', saved: 'rgba(54, 162, 235, 0.5)'}, // Blue
-  {active: 'rgba(255, 206, 86, 0.3)', saved: 'rgba(255, 206, 86, 0.5)'}, // Yellow
-  {active: 'rgba(75, 192, 192, 0.3)', saved: 'rgba(75, 192, 192, 0.5)'}, // Teal
-  {active: 'rgba(153, 102, 255, 0.3)', saved: 'rgba(153, 102, 255, 0.5)'}, // Purple
-  {active: 'rgba(255, 159, 64, 0.3)', saved: 'rgba(255, 159, 64, 0.5)'}, // Orange
-  {active: 'rgba(46, 204, 113, 0.3)', saved: 'rgba(46, 204, 113, 0.5)'}, // Green
+  {active: 'rgba(255, 111, 145, 0.3)', saved: 'rgba(255, 111, 145, 0.5)'}, // Rose Pink
+  {active: 'rgba(86, 204, 242, 0.3)', saved: 'rgba(86, 204, 242, 0.5)'}, // Sky Blue
+  {active: 'rgba(255, 179, 71, 0.3)', saved: 'rgba(255, 179, 71, 0.5)'}, // Marigold
+  {active: 'rgba(183, 110, 255, 0.3)', saved: 'rgba(183, 110, 255, 0.5)'}, // Lavender
+  {active: 'rgba(255, 145, 77, 0.3)', saved: 'rgba(255, 145, 77, 0.5)'}, // Coral
+  {active: 'rgba(77, 198, 171, 0.3)', saved: 'rgba(77, 198, 171, 0.5)'}, // Seafoam
+  {active: 'rgba(255, 166, 193, 0.3)', saved: 'rgba(255, 166, 193, 0.5)'}, // Bubblegum
+  {active: 'rgba(126, 217, 87, 0.3)', saved: 'rgba(126, 217, 87, 0.5)'}, // Lime
+  {active: 'rgba(255, 198, 115, 0.3)', saved: 'rgba(255, 198, 115, 0.5)'}, // Peach
+  {active: 'rgba(95, 177, 255, 0.3)', saved: 'rgba(95, 177, 255, 0.5)'}, // Azure
+  {active: 'rgba(255, 130, 130, 0.3)', saved: 'rgba(255, 130, 130, 0.5)'}, // Salmon
+  {active: 'rgba(147, 197, 114, 0.3)', saved: 'rgba(147, 197, 114, 0.5)'}, // Sage
 ];
