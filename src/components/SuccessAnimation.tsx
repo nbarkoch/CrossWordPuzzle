@@ -1,6 +1,13 @@
 import React, {forwardRef} from 'react';
-import {Canvas, Path, Skia, Group} from '@shopify/react-native-skia';
-import {StyleSheet} from 'react-native';
+import {
+  Canvas,
+  Path,
+  Skia,
+  Group,
+  Mask,
+  Rect,
+} from '@shopify/react-native-skia';
+import {Dimensions, StyleSheet} from 'react-native';
 import {
   useSharedValue,
   withSequence,
@@ -22,6 +29,8 @@ export type SuccessAnimationRef = {
 type Props = {
   blockSize: number;
 };
+
+const {width, height} = Dimensions.get('screen');
 
 const SuccessAnimation = forwardRef<SuccessAnimationRef, Props>(
   ({blockSize}, ref) => {
@@ -110,9 +119,9 @@ const SuccessAnimation = forwardRef<SuccessAnimationRef, Props>(
       centerX /= positions.value.length;
       centerY /= positions.value.length;
 
-      const width = Math.abs(maxX - minX) + blockSize;
-      const height = Math.abs(maxY - minY) + blockSize;
-      const aspectRatio = width / height;
+      const $width = Math.abs(maxX - minX) + blockSize;
+      const $height = Math.abs(maxY - minY) + blockSize;
+      const aspectRatio = $width / $height;
 
       let scaleX = scale.value;
       let scaleY = scale.value;
@@ -154,13 +163,34 @@ const SuccessAnimation = forwardRef<SuccessAnimationRef, Props>(
     return (
       <Canvas style={StyleSheet.absoluteFill}>
         <Group matrix={matrix}>
-          <Path
-            path={path}
-            style="stroke"
-            strokeWidth={blockSize}
-            strokeCap="round"
-            color={outerColor}
-          />
+          <Mask
+            mode="luminance"
+            mask={
+              <Group>
+                <Path
+                  path={path}
+                  style="stroke"
+                  strokeWidth={blockSize * 1.15}
+                  strokeCap="round"
+                  color="white"
+                />
+                <Path
+                  path={path}
+                  style="stroke"
+                  strokeWidth={blockSize * 0.9}
+                  strokeCap="round"
+                  color="black"
+                />
+              </Group>
+            }>
+            <Rect
+              x={0}
+              y={0}
+              width={width}
+              height={height}
+              color={outerColor}
+            />
+          </Mask>
         </Group>
       </Canvas>
     );

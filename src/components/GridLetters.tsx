@@ -270,7 +270,7 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
     );
 
     progress.value = withTiming(
-      Math.floor((sequences.length / placedWords.length) * 100),
+      Math.floor(((sequences.length + 1) / placedWords.length) * 100),
       {duration: 1000},
     );
   }, [
