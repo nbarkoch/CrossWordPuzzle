@@ -15,6 +15,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import {RootStackParamList} from './Navigation';
+import NavigationBar from '../components/NavigationBar';
 
 const {width} = Dimensions.get('window');
 const ITEM_SPACING = 10;
@@ -104,10 +105,11 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
       style={styles.container}
       start={{x: 0, y: 0}}
       end={{x: 1, y: 1}}>
+      {' '}
+      <NavigationBar title="Word Search" onBack={() => navigation.goBack()} />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Word Search</Text>
         <Text style={styles.subtitle}>Choose a category and puzzle size</Text>
 
         <View style={styles.categoriesGrid}>
@@ -185,6 +187,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
+    paddingTop: 10,
   },
   title: {
     fontSize: 32,
