@@ -105,7 +105,6 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
       style={styles.container}
       start={{x: 0, y: 0}}
       end={{x: 1, y: 1}}>
-      {' '}
       <NavigationBar title="Word Search" onBack={() => navigation.goBack()} />
       <ScrollView
         style={styles.scrollView}

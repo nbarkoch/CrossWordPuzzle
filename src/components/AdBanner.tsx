@@ -2,17 +2,15 @@ import React from 'react';
 import {StyleSheet, View} from 'react-native';
 import {BannerAd, BannerAdSize, TestIds} from 'react-native-google-mobile-ads';
 
-interface AdBannerProps {
-  backgroundColor: string;
-}
+interface AdBannerProps {}
 
-const AdBanner = ({backgroundColor}: AdBannerProps) => {
+const AdBanner = ({}: AdBannerProps) => {
   const adUnitId = __DEV__
     ? TestIds.BANNER
     : 'ca-app-pub-3655197897637289/5393134387';
 
   return (
-    <View style={[styles.banner, {backgroundColor}]}>
+    <View style={[styles.banner]}>
       <BannerAd
         unitId={adUnitId}
         size={BannerAdSize.BANNER}
@@ -33,6 +31,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     minHeight: 50,
+    backgroundColor: 'black',
   },
 });
 

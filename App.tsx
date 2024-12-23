@@ -26,7 +26,7 @@ function App(): JSX.Element {
       <GestureHandlerRootView style={styles.sectionContainer}>
         <Navigation />
       </GestureHandlerRootView>
-      <AdBanner backgroundColor={'#c568ff'} />
+      <AdBanner />
     </SafeAreaView>
   );
 }
