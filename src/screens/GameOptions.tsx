@@ -16,6 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import {RootStackParamList} from './Navigation';
 import NavigationBar from '../components/NavigationBar';
+import {GRID_SIZES} from '../utils/blockCalcs';
 
 const {width} = Dimensions.get('window');
 const ITEM_SPACING = 10;
@@ -35,11 +36,8 @@ const CATEGORIES = [
   {id: 'nature', name: 'Nature', emoji: '🌿'},
 ];
 
-const SIZES = [
-  {id: 'small', name: 'Small', description: '6x8 grid'},
-  {id: 'medium', name: 'Medium', description: '8x10 grid'},
-  {id: 'large', name: 'Large', description: '10x12 grid'},
-];
+const SIZES = ['small', 'medium', 'large'] as const;
+type GridSize = (typeof SIZES)[number];
 
 const CategoryItem = ({
   category,
@@ -73,7 +71,7 @@ const CategoryItem = ({
       <LinearGradient
         colors={
           isSelected
-            ? ['#e77cff', '#d93cfc'] // Brighter gradient when selected
+            ? ['#e77cff', '#d93cfc']
             : ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.1)']
         }
         style={styles.categoryGradient}>
@@ -93,10 +91,11 @@ type GameOptionsProps = {
 };
 const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<GridSize | null>(null);
 
-  function onStart(params: {category: string; size: string}): void {
-    navigation.navigate('Game', params);
+  function onStart(params: {category: string; size: GridSize}): void {
+    const {blockSize} = GRID_SIZES[params.size];
+    navigation.navigate('Game', {category: params.category, blockSize});
   }
 
   return (
@@ -128,26 +127,30 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
           style={styles.sizesContainer}>
           <Text style={styles.sectionTitle}>Puzzle Size</Text>
           <View style={styles.sizesGrid}>
-            {SIZES.map(size => (
-              <TouchableOpacity
-                key={size.id}
-                style={[
-                  styles.sizeButton,
-                  selectedSize === size.id && styles.selectedSizeButton,
-                ]}
-                onPress={() => setSelectedSize(size.id)}>
-                <LinearGradient
-                  colors={
-                    selectedSize === size.id
-                      ? ['#e77cff', '#d93cfc']
-                      : ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.1)']
-                  }
-                  style={styles.sizeButtonGradient}>
-                  <Text style={styles.sizeName}>{size.name}</Text>
-                  <Text style={styles.sizeDescription}>{size.description}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
+            {SIZES.map(size => {
+              const {rows, cols} = GRID_SIZES[size];
+              const description = `${cols}x${rows} grid`;
+              return (
+                <TouchableOpacity
+                  key={size}
+                  style={[
+                    styles.sizeButton,
+                    selectedSize === size && styles.selectedSizeButton,
+                  ]}
+                  onPress={() => setSelectedSize(size)}>
+                  <LinearGradient
+                    colors={
+                      selectedSize === size
+                        ? ['#e77cff', '#d93cfc']
+                        : ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.1)']
+                    }
+                    style={styles.sizeButtonGradient}>
+                    <Text style={styles.sizeName}>{size}</Text>
+                    <Text style={styles.sizeDescription}>{description}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </LinearGradient>
 
@@ -169,7 +172,7 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
                 : ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.1)']
             }
             style={styles.playButtonGradient}>
-            <Text style={styles.playButtonText}>Let's Play!</Text>
+            <Text style={styles.playButtonText}>Play Game</Text>
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>

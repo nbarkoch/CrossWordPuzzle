@@ -1,4 +1,40 @@
+import {Dimensions, Platform} from 'react-native';
 import {Direction, Position, WordSequence} from './types';
+
+const MIN_TAP_SIZE = Platform.select({
+  ios: 44,
+  android: 48,
+  default: 48,
+});
+
+export const calculateOptimalGridSizes = () => {
+  const {width, height} = Dimensions.get('window');
+  const GRID_BOTTOM = 200;
+  const GRID_HORIZONTAL = 10;
+
+  const maxRows = Math.floor((height - GRID_BOTTOM) / MIN_TAP_SIZE);
+  const maxCols = Math.floor((width - GRID_HORIZONTAL) / MIN_TAP_SIZE);
+
+  return {
+    large: {
+      rows: maxRows,
+      cols: maxCols,
+      blockSize: MIN_TAP_SIZE,
+    },
+    medium: {
+      rows: Math.floor(maxRows * 0.9),
+      cols: Math.floor(maxCols * 0.9),
+      blockSize: 52,
+    },
+    small: {
+      rows: Math.floor(maxRows * 0.8),
+      cols: Math.floor(maxCols * 0.8),
+      blockSize: 60,
+    },
+  };
+};
+
+export const GRID_SIZES = calculateOptimalGridSizes();
 
 // Calculate angle between two positions in degrees (0-360)
 export const calculateAngle = (start: Position, end: Position): number => {

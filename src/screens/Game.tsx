@@ -1,10 +1,14 @@
 import React from 'react';
 import GridLetters from '../components/GridLetters';
+import {RouteProp, useRoute} from '@react-navigation/native';
+import {RootStackParamList} from './Navigation';
 
 function Game() {
+  const {blockSize} = useRoute<RouteProp<RootStackParamList, 'Game'>>().params;
+
   return (
     <GridLetters
-      blockSize={60}
+      blockSize={blockSize}
       words={[
         'Hair',
         'Hotel',

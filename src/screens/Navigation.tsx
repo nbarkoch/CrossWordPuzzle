@@ -11,7 +11,7 @@ import Settings from './Settings';
 
 export type RootStackParamList = {
   MainMenu: undefined;
-  Game: {category: string; size: string};
+  Game: {category: string; blockSize: number};
   Settings: undefined;
   GameOptions: {
     mode: 'classic' | 'timed' | 'challenge';
