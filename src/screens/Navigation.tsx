@@ -8,10 +8,11 @@ import GameOptions from './GameOptions';
 import Leaderboard from './Leaderboard';
 import MainMenu from './MainMenu';
 import Settings from './Settings';
+import {CategorySelection, GridSize} from '../utils/types';
 
 export type RootStackParamList = {
   MainMenu: undefined;
-  Game: {category: string; blockSize: number};
+  Game: {category: CategorySelection; blockSize: GridSize};
   Settings: undefined;
   GameOptions: {
     mode: 'classic' | 'timed' | 'challenge';

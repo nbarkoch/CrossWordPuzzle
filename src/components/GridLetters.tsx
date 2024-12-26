@@ -52,34 +52,45 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
     return SEQUENCE_COLORS[currentColorIndex.value % SEQUENCE_COLORS.length];
   }, [currentColorIndex.value]);
 
-  // In your GridLetters component
-
-  const {gridRows, gridCols, letterGrid, placedWords, gridHorizontalPadding} =
-    useMemo(() => {
-      const $gridRows = Math.floor((height - GRID_BOTTOM) / blockSize);
-      const $gridCols = Math.floor((width - GRID_HORIZONTAL) / blockSize);
-      try {
-        const {grid: $letterGrid, placedWords: $placedWords} =
-          generateLetterGrid($gridCols, $gridRows, words);
-        const $gridHorizontalPadding = (width - $gridCols * blockSize) / 2;
-        return {
-          gridRows: $gridRows,
-          gridCols: $gridCols,
-          gridHorizontalPadding: $gridHorizontalPadding,
-          letterGrid: $letterGrid,
-          placedWords: $placedWords,
-        };
-      } catch (error) {
-        return {
-          gridRows: 0,
-          gridCols: 0,
-          gridHorizontalPadding: 0,
-          letterGrid: [],
-          placedWords: [],
-        };
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [blockSize, words, gridKey]);
+  const {
+    gridRows,
+    gridCols,
+    letterGrid,
+    placedWords,
+    normalizedPlacedWords,
+    gridHorizontalPadding,
+  } = useMemo(() => {
+    const $gridRows = Math.floor((height - GRID_BOTTOM) / blockSize);
+    const $gridCols = Math.floor((width - GRID_HORIZONTAL) / blockSize);
+    try {
+      const {grid: $letterGrid, placedWords: $placedWords} = generateLetterGrid(
+        $gridCols,
+        $gridRows,
+        words,
+      );
+      const $gridHorizontalPadding = (width - $gridCols * blockSize) / 2;
+      const normalizeWord = (word: string) =>
+        word.replace(/\s+/g, '').toUpperCase();
+      return {
+        gridRows: $gridRows,
+        gridCols: $gridCols,
+        gridHorizontalPadding: $gridHorizontalPadding,
+        letterGrid: $letterGrid,
+        placedWords: $placedWords,
+        normalizedPlacedWords: $placedWords.map(normalizeWord),
+      };
+    } catch (error) {
+      return {
+        gridRows: 0,
+        gridCols: 0,
+        gridHorizontalPadding: 0,
+        letterGrid: [],
+        placedWords: [],
+        normalizedPlacedWords: [],
+      };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blockSize, words, gridKey]);
 
   const gridDimensions = useMemo(
     () => ({
@@ -254,9 +265,9 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
   const $isValidWord = useCallback(
     (word: string) => {
       'worklet';
-      return isValidWord(word, placedWords, sequences);
+      return isValidWord(word, normalizedPlacedWords, sequences);
     },
-    [placedWords, sequences],
+    [normalizedPlacedWords, sequences],
   );
 
   const setSuccess = useCallback(() => {

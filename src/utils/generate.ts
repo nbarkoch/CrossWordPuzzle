@@ -241,8 +241,6 @@ export const generateLetterGrid = (
   gridRows: number,
   words: string[],
 ): {grid: string[][]; placedWords: string[]} => {
-  // ... (previous code remains the same until filling remaining spaces)
-
   const grid: string[][] = Array(gridRows)
     .fill('')
     .map(() => Array(gridCols).fill(''));

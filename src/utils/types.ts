@@ -14,3 +14,23 @@ export type WordSequence = {
   end: Position;
   direction: Direction;
 };
+
+export const CATEGORIES = [
+  'animals',
+  'sports',
+  'food',
+  'science',
+  'geography',
+  'movies',
+  'music',
+  'tech',
+  'nature',
+  'art',
+  'space',
+  'history',
+] as const;
+
+export type CategorySelection = (typeof CATEGORIES)[number];
+
+export const GRID_TYPE_SIZES = ['small', 'medium', 'large'] as const;
+export type GridSize = (typeof GRID_TYPE_SIZES)[number];
