@@ -245,7 +245,7 @@ export const generateLetterGrid = (
     .fill('')
     .map(() => Array(gridCols).fill(''));
 
-  const validWords = words
+  const validWords = [...new Set(words)]
     .filter(word => word.length <= Math.max(gridRows, gridCols))
     .sort(() => Math.random() - 0.5)
     .map(word => word.toUpperCase());

@@ -100,9 +100,9 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   foundBadge: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: '#f9d3ff',
     borderWidth: 1,
-    borderColor: '#D1FAE5',
+    borderColor: '#f9d3ff',
   },
   wordText: {
     fontSize: 16,
@@ -110,8 +110,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   foundText: {
-    textDecorationLine: 'line-through',
-    color: '#065F46',
+    color: '#bf4fd1',
   },
 });
 

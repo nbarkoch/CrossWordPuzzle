@@ -1218,7 +1218,6 @@ export const wordsDictionary: Record<CategorySelection, string[]> = {
     'Scene',
     'Show',
     'Hide',
-    'Find',
     'Seek',
     'Update',
     'Change',
