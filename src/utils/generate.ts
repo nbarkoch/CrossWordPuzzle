@@ -235,20 +235,26 @@ const fillRemainingSpaces = (
   }
 };
 
+export const normalizeWord = (word: string) =>
+  word.replace(/\s+/g, '').toUpperCase();
+
 // Update the original generateLetterGrid function to use the new fillRemainingSpaces
 export const generateLetterGrid = (
   gridCols: number,
   gridRows: number,
   words: string[],
-): {grid: string[][]; placedWords: string[]} => {
+): {
+  grid: string[][];
+  placedWords: string[];
+  normalizedPlacedWords: string[];
+} => {
   const grid: string[][] = Array(gridRows)
     .fill('')
     .map(() => Array(gridCols).fill(''));
 
   const validWords = [...new Set(words)]
     .filter(word => word.length <= Math.max(gridRows, gridCols))
-    .sort(() => Math.random() - 0.5)
-    .map(word => word.toUpperCase());
+    .sort(() => Math.random() - 0.5);
 
   if (validWords.length === 0) {
     throw new Error('No valid words provided');
@@ -260,11 +266,12 @@ export const generateLetterGrid = (
   while (remainingAttempts > 0 && validWords.length > 0) {
     const randomIndex = Math.floor(Math.random() * validWords.length);
     const word = validWords[randomIndex];
+    const normalizedWord = normalizeWord(word);
 
-    const placement = findValidPlacement(grid, word);
+    const placement = findValidPlacement(grid, normalizedWord);
 
     if (placement) {
-      placeWord(grid, word, placement.position, placement.direction);
+      placeWord(grid, normalizedWord, placement.position, placement.direction);
       placedWords.push(word);
       validWords.splice(randomIndex, 1);
       remainingAttempts = validWords.length * 2;
@@ -276,9 +283,10 @@ export const generateLetterGrid = (
   if (placedWords.length === 0) {
     throw new Error('Could not place any words in grid');
   }
+  const normalizedPlacedWords = placedWords.map(normalizeWord);
 
   // Use the new function to fill remaining spaces
-  fillRemainingSpaces(grid, placedWords, gridRows, gridCols);
+  fillRemainingSpaces(grid, normalizedPlacedWords, gridRows, gridCols);
 
-  return {grid, placedWords};
+  return {grid, placedWords, normalizedPlacedWords};
 };

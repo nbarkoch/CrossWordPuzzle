@@ -3,6 +3,7 @@ import Animated, {FadeInDown} from 'react-native-reanimated';
 import {FlatList, StyleSheet, Alert, Text} from 'react-native';
 import {WordSequence} from '../utils/types';
 import LinearGradient from 'react-native-linear-gradient';
+import {normalizeWord} from '../utils/generate';
 
 type WordStatusDisplayProps = {
   placedWords: string[];
@@ -19,7 +20,9 @@ const WordStatusDisplay = ({
     () =>
       placedWords.map(word => ({
         word,
-        isFound: foundSequences.some(sequence => sequence.word === word),
+        isFound: foundSequences.some(
+          sequence => sequence.word === normalizeWord(word),
+        ),
       })),
     [placedWords, foundSequences],
   );

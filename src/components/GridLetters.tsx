@@ -43,33 +43,35 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
         const $gridRows = Math.floor((height - GRID_BOTTOM) / blockSize);
         const $gridCols = Math.floor((width - GRID_HORIZONTAL) / blockSize);
 
-        const {grid: $letterGrid, placedWords: $placedWords} =
-          await new Promise<{
-            grid: string[][];
-            placedWords: string[];
-          }>(resolve => {
-            // Move the heavy computation off the main thread
-            setTimeout(() => {
-              try {
-                const result = generateLetterGrid($gridCols, $gridRows, words);
-                resolve(result);
-              } catch (error) {
-                console.error('Grid generation error:', error);
-                resolve({grid: [], placedWords: []});
-              }
-            }, 0);
-          });
+        const {
+          grid: $letterGrid,
+          placedWords: $placedWords,
+          normalizedPlacedWords: $normalizedPlacedWords,
+        } = await new Promise<{
+          grid: string[][];
+          placedWords: string[];
+          normalizedPlacedWords: string[];
+        }>(resolve => {
+          // Move the heavy computation off the main thread
+          setTimeout(() => {
+            try {
+              const result = generateLetterGrid($gridCols, $gridRows, words);
+              resolve(result);
+            } catch (error) {
+              console.error('Grid generation error:', error);
+              resolve({grid: [], placedWords: [], normalizedPlacedWords: []});
+            }
+          }, 0);
+        });
 
         const $gridHorizontalPadding = (width - $gridCols * blockSize) / 2;
-        const normalizeWord = (word: string) =>
-          word.replace(/\s+/g, '').toUpperCase();
 
         setGridData({
           gridRows: $gridRows,
           gridCols: $gridCols,
           letterGrid: $letterGrid,
           placedWords: $placedWords,
-          normalizedPlacedWords: $placedWords.map(normalizeWord),
+          normalizedPlacedWords: $normalizedPlacedWords,
           gridHorizontalPadding: $gridHorizontalPadding,
         });
       } catch (error) {
