@@ -157,7 +157,7 @@ const SuccessAnimation = forwardRef<SuccessAnimationRef, Props>(
 
       return `rgba(${r + 50 > 255 ? 255 : r + 50}, ${
         g + 50 > 255 ? 255 : g + 50
-      }, ${b + 50 > 255 ? 255 : b + 50}, ${opacity.value * 0.5})`;
+      }, ${b + 50 > 255 ? 255 : b + 50}, ${opacity.value * 0.7})`;
     });
 
     return (

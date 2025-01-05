@@ -4,7 +4,12 @@ import {
   useAnimatedReaction,
 } from 'react-native-reanimated';
 import React from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {StyleSheet, Text} from 'react-native';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+} from 'react-native-reanimated';
 
 const WordDisplay: React.FC<{word: SharedValue<string>}> = ({word}) => {
   const [displayWord, setDisplayWord] = React.useState('');
@@ -17,10 +22,17 @@ const WordDisplay: React.FC<{word: SharedValue<string>}> = ({word}) => {
   );
 
   return (
-    displayWord !== '' && (
-      <View style={styles.wordDisplay}>
+    displayWord && (
+      <Animated.View
+        style={styles.wordDisplay}
+        entering={FadeIn.duration(200)}
+        exiting={FadeOut.duration(200)}
+        layout={LinearTransition.springify()
+          .mass(0.3)
+          .damping(12)
+          .stiffness(100)}>
         <Text style={styles.wordText}>{displayWord}</Text>
-      </View>
+      </Animated.View>
     )
   );
 };
@@ -28,11 +40,12 @@ const WordDisplay: React.FC<{word: SharedValue<string>}> = ({word}) => {
 const styles = StyleSheet.create({
   wordDisplay: {
     position: 'absolute',
-    top: 10,
+    top: 5,
     margin: 10,
-    paddingHorizontal: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(39, 39, 39, 0.43)',
+    borderRadius: 15,
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
@@ -40,9 +53,9 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   wordText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '900',
-    color: '#553F7Ed0',
+    color: 'rgba(255, 255, 255, 0.89)',
   },
 });
 
