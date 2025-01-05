@@ -23,6 +23,7 @@ import {
   GRID_TYPE_SIZES,
   GridSize,
 } from '../utils/types';
+import {Banner} from '../components/AdBanner';
 
 const {width} = Dimensions.get('window');
 const ITEM_SPACING = 10;
@@ -242,6 +243,7 @@ const styles = StyleSheet.create({
   bottomContainer: {
     gap: 16,
     padding: 20,
+    paddingBottom: Banner.height + 30,
   },
   sizesContainer: {
     borderRadius: 12,

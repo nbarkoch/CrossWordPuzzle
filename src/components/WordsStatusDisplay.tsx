@@ -4,6 +4,7 @@ import {FlatList, StyleSheet, Alert, Text} from 'react-native';
 import {WordSequence} from '../utils/types';
 import LinearGradient from 'react-native-linear-gradient';
 import {normalizeWord} from '../utils/generate';
+import {Banner} from './AdBanner';
 
 type WordStatusDisplayProps = {
   placedWords: string[];
@@ -67,7 +68,7 @@ const WordStatusDisplay = ({
 
   return (
     <LinearGradient
-      colors={['transparent', '#c568ff']}
+      colors={['transparent', '#c568ff', '#c568ff']}
       style={styles.container}>
       <FlatList
         horizontal
@@ -84,6 +85,7 @@ const WordStatusDisplay = ({
 const styles = StyleSheet.create({
   container: {
     paddingVertical: 8,
+    paddingBottom: Banner.height,
   },
   scrollContent: {
     flexDirection: 'row',

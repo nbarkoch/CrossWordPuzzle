@@ -6,6 +6,7 @@ import {generateLetterGrid} from '../utils/generate';
 import LinearGradient from 'react-native-linear-gradient';
 
 import LoadingAnimation from './LoadingAnimation';
+import {Banner} from './AdBanner';
 const GridContent = React.lazy(() => import('./GridContent'));
 
 type GridConfig = {
@@ -129,6 +130,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: Banner.height,
   },
   gridContainer: {
     ...StyleSheet.absoluteFillObject,

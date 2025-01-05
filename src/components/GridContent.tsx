@@ -26,6 +26,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import SuccessAnimation, {SuccessAnimationRef} from './SuccessAnimation';
 
 import StripeProgress from './StripeProgression';
+import {Banner} from './AdBanner';
 
 type GridConfig = {
   gridRows: number;
@@ -492,6 +493,7 @@ export default function GridContent({
             stripeSpeed={1500}
           />
         </View>
+
         <WordStatusDisplay
           placedWords={placedWords}
           foundSequences={sequences}
@@ -546,7 +548,7 @@ const styles = StyleSheet.create({
   },
   progress: {
     position: 'absolute',
-    bottom: 70,
+    bottom: 80 + Banner.height,
     right: (width - 300) / 2,
   },
   bottomContainer: {position: 'absolute', bottom: 0, maxHeight: GRID_BOTTOM},

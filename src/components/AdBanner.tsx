@@ -1,7 +1,11 @@
 import React from 'react';
 import {StyleSheet, View} from 'react-native';
 import {BannerAd, BannerAdSize, TestIds} from 'react-native-google-mobile-ads';
+import {Dimensions} from 'react-native';
 
+const {width} = Dimensions.get('screen');
+
+export const Banner = {width: 320, height: 30};
 interface AdBannerProps {}
 
 const AdBanner = ({}: AdBannerProps) => {
@@ -28,10 +32,10 @@ const AdBanner = ({}: AdBannerProps) => {
 
 const styles = StyleSheet.create({
   banner: {
-    justifyContent: 'center',
-    alignItems: 'center',
     minHeight: 50,
-    backgroundColor: 'black',
+    position: 'absolute',
+    bottom: 0,
+    left: (width - Banner.width) / 2,
   },
 });
 
