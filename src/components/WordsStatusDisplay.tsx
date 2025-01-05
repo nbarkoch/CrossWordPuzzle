@@ -7,25 +7,25 @@ import {normalizeWord} from '../utils/generate';
 import {Banner} from './AdBanner';
 
 type WordStatusDisplayProps = {
-  placedWords: string[];
+  normalizedPlacedWords: string[];
   foundSequences: WordSequence[];
   onGameComplete: () => void;
 };
 
 const WordStatusDisplay = ({
-  placedWords,
+  normalizedPlacedWords,
   foundSequences,
   onGameComplete,
 }: WordStatusDisplayProps) => {
   const wordsData = React.useMemo(
     () =>
-      placedWords.map(word => ({
+      normalizedPlacedWords.map(word => ({
         word,
         isFound: foundSequences.some(
           sequence => sequence.word === normalizeWord(word),
         ),
       })),
-    [placedWords, foundSequences],
+    [normalizedPlacedWords, foundSequences],
   );
 
   const renderItem = ({
@@ -49,14 +49,13 @@ const WordStatusDisplay = ({
   };
 
   useEffect(() => {
-    const normalizedPlacedWords = placedWords.map(word => word);
     const normalizedFoundWords = foundSequences.map(seq => seq.word);
 
     const allWordsFound = normalizedPlacedWords.every(word =>
       normalizedFoundWords.includes(word),
     );
 
-    if (allWordsFound && placedWords.length > 0) {
+    if (allWordsFound && normalizedPlacedWords.length > 0) {
       Alert.alert('Congratulations!', "You've found all the words!", [
         {
           text: 'Play Again',
@@ -64,7 +63,7 @@ const WordStatusDisplay = ({
         },
       ]);
     }
-  }, [foundSequences, placedWords, onGameComplete]);
+  }, [foundSequences, normalizedPlacedWords, onGameComplete]);
 
   return (
     <LinearGradient

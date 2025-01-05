@@ -495,7 +495,7 @@ export default function GridContent({
         </View>
 
         <WordStatusDisplay
-          placedWords={placedWords}
+          normalizedPlacedWords={normalizedPlacedWords}
           foundSequences={sequences}
           onGameComplete={resetGame}
         />
