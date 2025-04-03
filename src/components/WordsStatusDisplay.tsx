@@ -1,6 +1,6 @@
-import React, {useEffect} from 'react';
+import React from 'react';
 import Animated, {FadeInDown} from 'react-native-reanimated';
-import {FlatList, StyleSheet, Alert, Text} from 'react-native';
+import {FlatList, StyleSheet, Text} from 'react-native';
 import {WordSequence} from '../utils/types';
 import LinearGradient from 'react-native-linear-gradient';
 import {normalizeWord} from '../utils/generate';
@@ -9,13 +9,11 @@ import {Banner} from './AdBanner';
 type WordStatusDisplayProps = {
   normalizedPlacedWords: string[];
   foundSequences: WordSequence[];
-  onGameComplete: () => void;
 };
 
 const WordStatusDisplay = ({
   normalizedPlacedWords,
   foundSequences,
-  onGameComplete,
 }: WordStatusDisplayProps) => {
   const wordsData = React.useMemo(
     () =>
@@ -47,23 +45,6 @@ const WordStatusDisplay = ({
       </Animated.View>
     );
   };
-
-  useEffect(() => {
-    const normalizedFoundWords = foundSequences.map(seq => seq.word);
-
-    const allWordsFound = normalizedPlacedWords.every(word =>
-      normalizedFoundWords.includes(word),
-    );
-
-    if (allWordsFound && normalizedPlacedWords.length > 0) {
-      Alert.alert('Congratulations!', "You've found all the words!", [
-        {
-          text: 'Play Again',
-          onPress: onGameComplete,
-        },
-      ]);
-    }
-  }, [foundSequences, normalizedPlacedWords, onGameComplete]);
 
   return (
     <LinearGradient

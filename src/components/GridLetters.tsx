@@ -24,8 +24,16 @@ const GRID_TOP = 60;
 const GRID_BOTTOM = 300;
 const GRID_HORIZONTAL = 10;
 
-type GridLettersProps = {blockSize: number; words: string[]};
-export default function GridLetters({blockSize, words}: GridLettersProps) {
+type GridLettersProps = {
+  blockSize: number;
+  words: string[];
+  goToMenu: () => void;
+};
+export default function GridLetters({
+  blockSize,
+  words,
+  goToMenu,
+}: GridLettersProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [gridData, setGridData] = useState<GridConfig>({
     gridRows: 0,
@@ -36,7 +44,6 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
     gridHorizontalPadding: 0,
   });
   const [gameKey, setGameKey] = useState<number>(0);
-
   useEffect(() => {
     const generateGrid = async () => {
       setIsLoading(true);
@@ -119,6 +126,7 @@ export default function GridLetters({blockSize, words}: GridLettersProps) {
       <GridContent
         gridData={gridData}
         blockSize={blockSize}
+        onGoHome={goToMenu}
         onGameReset={() => setGameKey(prev => prev + 1)}
       />
     </LinearGradient>

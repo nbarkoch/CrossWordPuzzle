@@ -27,6 +27,7 @@ import SuccessAnimation, {SuccessAnimationRef} from './SuccessAnimation';
 
 import StripeProgress from './StripeProgression';
 import {Banner} from './AdBanner';
+import EndGameDialog from './dialogs/GameEndDialog';
 
 type GridConfig = {
   gridRows: number;
@@ -47,11 +48,13 @@ type GridContentProps = {
   gridData: GridConfig;
   blockSize: number;
   onGameReset: () => void;
+  onGoHome: () => void;
 };
 export default function GridContent({
   gridData,
   blockSize,
   onGameReset,
+  onGoHome,
 }: GridContentProps) {
   const {
     gridRows,
@@ -63,6 +66,7 @@ export default function GridContent({
   } = gridData;
   const [sequences, setSequences] = useState<WordSequence[]>([]);
   const [activeIndex, setActiveIndex] = useState<number>(0);
+  const [endDialog, setEndDialog] = useState<boolean>(false);
 
   // Add state to track found letters
   const [foundLetters, setFoundLetters] = useState<{[key: string]: boolean}>(
@@ -148,6 +152,7 @@ export default function GridContent({
     });
 
     onGameReset();
+    setEndDialog(false);
   }, [
     currentWord,
     endPointX,
@@ -163,6 +168,18 @@ export default function GridContent({
     animatedDy,
     onGameReset,
   ]);
+
+  useEffect(() => {
+    const normalizedFoundWords = sequences.map(seq => seq.word);
+
+    const allWordsFound = normalizedPlacedWords.every(word =>
+      normalizedFoundWords.includes(word),
+    );
+
+    if (allWordsFound && normalizedPlacedWords.length > 0) {
+      setEndDialog(true);
+    }
+  }, [sequences, normalizedPlacedWords]);
 
   // Function to update the current word based on selected blocks
   const updateCurrentWord = (blocks: Position[]) => {
@@ -497,9 +514,13 @@ export default function GridContent({
         <WordStatusDisplay
           normalizedPlacedWords={normalizedPlacedWords}
           foundSequences={sequences}
-          onGameComplete={resetGame}
         />
       </View>
+      <EndGameDialog
+        visible={endDialog}
+        onPlayAgain={resetGame}
+        onGoHome={onGoHome}
+      />
     </>
   );
 }
