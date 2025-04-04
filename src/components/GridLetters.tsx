@@ -7,6 +7,7 @@ import LinearGradient from 'react-native-linear-gradient';
 
 import LoadingAnimation from './LoadingAnimation';
 import {Banner} from './AdBanner';
+import {CategorySelection, GridSize} from '../utils/types';
 const GridContent = React.lazy(() => import('./GridContent'));
 
 type GridConfig = {
@@ -28,11 +29,15 @@ type GridLettersProps = {
   blockSize: number;
   words: string[];
   goToMenu: () => void;
+  category: CategorySelection;
+  gridSize: GridSize;
 };
 export default function GridLetters({
   blockSize,
   words,
   goToMenu,
+  gridSize,
+  category,
 }: GridLettersProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [gridData, setGridData] = useState<GridConfig>({
@@ -128,6 +133,8 @@ export default function GridLetters({
         blockSize={blockSize}
         onGoHome={goToMenu}
         onGameReset={() => setGameKey(prev => prev + 1)}
+        gridSize={gridSize}
+        category={category}
       />
     </LinearGradient>
   );

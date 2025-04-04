@@ -1,3 +1,5 @@
+import {CategorySelection} from './types';
+
 export const VALID_DIRECTIONS = [
   {dx: 0, dy: -1},
   {dx: 1, dy: -1},
@@ -23,3 +25,18 @@ export const SEQUENCE_COLORS = [
   {active: 'rgba(255, 130, 130, 0.3)', saved: 'rgba(255, 130, 130, 0.5)'}, // Salmon
   {active: 'rgba(147, 197, 114, 0.3)', saved: 'rgba(147, 197, 114, 0.5)'}, // Sage
 ];
+
+export const CATEGORIES_ICONS: Record<CategorySelection, string> = {
+  animals: '🦁',
+  sports: '⚽',
+  food: '🍕',
+  science: '🔬',
+  geography: '🌍',
+  movies: '🎬',
+  music: '🎵',
+  tech: '💻',
+  nature: '🌿',
+  art: '🎨',
+  space: '🚀',
+  history: '📜',
+} as const;

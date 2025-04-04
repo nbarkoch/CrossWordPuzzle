@@ -10,9 +10,14 @@ import {
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import {StyleSheet, Dimensions, View} from 'react-native';
 import {Canvas, Path, Skia, vec} from '@shopify/react-native-skia';
-import {Direction, Position, WordSequence} from '../utils/types';
+import {
+  CategorySelection,
+  Direction,
+  GridSize,
+  Position,
+  WordSequence,
+} from '../utils/types';
 import LetterBlock from './LetterBlock';
-import WordDisplay from './WordDisplay';
 import {
   getValidDirection,
   isDirectionValid,
@@ -28,6 +33,7 @@ import SuccessAnimation, {SuccessAnimationRef} from './SuccessAnimation';
 import StripeProgress from './StripeProgression';
 import {Banner} from './AdBanner';
 import EndGameDialog from './dialogs/GameEndDialog';
+import GameHeader from './GameHeader';
 
 type GridConfig = {
   gridRows: number;
@@ -49,12 +55,16 @@ type GridContentProps = {
   blockSize: number;
   onGameReset: () => void;
   onGoHome: () => void;
+  category: CategorySelection;
+  gridSize: GridSize;
 };
 export default function GridContent({
   gridData,
   blockSize,
   onGameReset,
   onGoHome,
+  category,
+  gridSize,
 }: GridContentProps) {
   const {
     gridRows,
@@ -416,7 +426,12 @@ export default function GridContent({
 
   return (
     <>
-      <WordDisplay word={currentWord} />
+      <GameHeader
+        word={currentWord}
+        category={category}
+        size={gridSize}
+        onGoHome={onGoHome}
+      />
       <GestureDetector gesture={gesture}>
         <View
           style={[

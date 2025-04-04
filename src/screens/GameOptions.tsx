@@ -24,27 +24,13 @@ import {
   GridSize,
 } from '../utils/types';
 import {Banner} from '../components/AdBanner';
+import {CATEGORIES_ICONS} from '../utils/consts';
 
 const {width} = Dimensions.get('window');
 const ITEM_SPACING = 10;
 const ITEMS_PER_ROW = 3;
 const ITEM_WIDTH =
   (width - 40 - ITEM_SPACING * (ITEMS_PER_ROW - 1)) / ITEMS_PER_ROW;
-
-const CATEGORIES_ICONS: Record<CategorySelection, string> = {
-  animals: '🦁',
-  sports: '⚽',
-  food: '🍕',
-  science: '🔬',
-  geography: '🌍',
-  movies: '🎬',
-  music: '🎵',
-  tech: '💻',
-  nature: '🌿',
-  art: '🎨',
-  space: '🚀',
-  history: '📜',
-} as const;
 
 const CategoryItem = ({
   category,
