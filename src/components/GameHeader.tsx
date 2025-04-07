@@ -15,7 +15,7 @@ import Animated, {
   LinearTransition,
 } from 'react-native-reanimated';
 import {Canvas, Group, Path} from '@shopify/react-native-skia';
-import {CategorySelection, GridSize} from '../utils/types';
+import {CategorySelection, GridSize} from '~/utils/types';
 
 // Home icon SVG path
 const homeIconPath =

@@ -1,9 +1,9 @@
 import React from 'react';
-import GridLetters from '../components/GridLetters';
+import GridLetters from '~/components/GridLetters';
 import {RouteProp, useRoute} from '@react-navigation/native';
 import {RootStackParamList} from './Navigation';
-import {GRID_SIZES} from '../utils/blockCalcs';
-import {wordsDictionary} from '../data/english';
+import {GRID_SIZES} from '~/utils/blockCalcs';
+import {wordsDictionary} from '~/data/english';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 type GameProps = {

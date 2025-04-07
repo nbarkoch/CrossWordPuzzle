@@ -10,8 +10,8 @@ import {SafeAreaView, StyleSheet, useColorScheme} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
-import AdBanner from './src/components/AdBanner';
-import Navigation from './src/screens/Navigation';
+import AdBanner from '~/components/AdBanner';
+import Navigation from '~/screens/Navigation';
 
 function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';

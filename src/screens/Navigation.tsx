@@ -8,7 +8,7 @@ import GameOptions from './GameOptions';
 import Leaderboard from './Leaderboard';
 import MainMenu from './MainMenu';
 import Settings from './Settings';
-import {CategorySelection, GridSize} from '../utils/types';
+import {CategorySelection, GridSize} from '~/utils/types';
 
 export type RootStackParamList = {
   MainMenu: undefined;

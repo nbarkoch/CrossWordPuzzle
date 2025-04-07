@@ -1,8 +1,8 @@
 import React from 'react';
 import {StyleSheet} from 'react-native';
 import {Canvas, Group, Path, Skia} from '@shopify/react-native-skia';
-import {WordSequence} from '../utils/types';
-import {SEQUENCE_COLORS} from '../utils/consts';
+import {WordSequence} from '~/utils/types';
+import {SEQUENCE_COLORS} from '~/utils/consts';
 
 type WordsLinesProps = {
   sequences: WordSequence[];

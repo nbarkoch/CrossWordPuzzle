@@ -1,4 +1,4 @@
-import {CategorySelection} from '../utils/types';
+import {CategorySelection} from '~/utils/types';
 
 export const wordsDictionary: Record<CategorySelection, string[]> = {
   animals: [

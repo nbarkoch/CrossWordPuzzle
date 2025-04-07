@@ -15,16 +15,16 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import {RootStackParamList} from './Navigation';
-import NavigationBar from '../components/NavigationBar';
-import {GRID_SIZES} from '../utils/blockCalcs';
+import NavigationBar from '~/components/NavigationBar';
+import {GRID_SIZES} from '~/utils/blockCalcs';
 import {
   CATEGORIES,
   CategorySelection,
   GRID_TYPE_SIZES,
   GridSize,
-} from '../utils/types';
-import {Banner} from '../components/AdBanner';
-import {CATEGORIES_ICONS} from '../utils/consts';
+} from '~/utils/types';
+import {Banner} from '~/components/AdBanner';
+import {CATEGORIES_ICONS} from '~/utils/consts';
 
 const {width} = Dimensions.get('window');
 const ITEM_SPACING = 10;

@@ -1,9 +1,9 @@
 import React from 'react';
 import Animated, {FadeInDown} from 'react-native-reanimated';
 import {FlatList, StyleSheet, Text} from 'react-native';
-import {WordSequence} from '../utils/types';
+import {WordSequence} from '~/utils/types';
 import LinearGradient from 'react-native-linear-gradient';
-import {normalizeWord} from '../utils/generate';
+import {normalizeWord} from '~/utils/generate';
 import {Banner} from './AdBanner';
 
 type WordStatusDisplayProps = {

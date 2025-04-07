@@ -5,7 +5,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import {Position} from '../utils/types';
+import {Position} from '~/utils/types';
 
 type HexBlockProps = {
   letter: string;

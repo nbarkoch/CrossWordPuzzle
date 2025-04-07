@@ -1,50 +1,22 @@
 import React from 'react';
-import {View, StyleSheet} from 'react-native';
+import {StyleSheet} from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
   withSequence,
-  Easing,
   FadeIn,
   FadeOut,
 } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
+import LottieView from 'lottie-react-native';
+import loadingBlocksAnimation from '~/assets/loading.json';
 
 const LoadingAnimation = () => {
-  const rotation = useSharedValue(0);
-  const scale = useSharedValue(1);
   const textOpacity = useSharedValue(0.7);
 
   React.useEffect(() => {
-    // Continuous rotation animation
-    rotation.value = withRepeat(
-      withTiming(360, {
-        duration: 500,
-        easing: Easing.linear,
-      }),
-      -1,
-      false,
-    );
-
-    // Subtle scale pulsing
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.1, {
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        withTiming(1, {
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-        }),
-      ),
-      -1,
-      true,
-    );
-
-    // Text opacity pulsing
     textOpacity.value = withRepeat(
       withSequence(
         withTiming(1, {duration: 1000}),
@@ -53,11 +25,7 @@ const LoadingAnimation = () => {
       -1,
       true,
     );
-  }, [rotation, scale, textOpacity]);
-
-  const spinningStyle = useAnimatedStyle(() => ({
-    transform: [{rotate: `${rotation.value}deg`}, {scale: scale.value}],
-  }));
+  }, [textOpacity]);
 
   const textStyle = useAnimatedStyle(() => ({
     opacity: textOpacity.value,
@@ -71,13 +39,12 @@ const LoadingAnimation = () => {
       <LinearGradient
         colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.85)']}
         style={styles.loadingBox}>
-        <Animated.View style={[styles.spinnerContainer, spinningStyle]}>
-          <LinearGradient
-            colors={['#e77cff', 'white', 'white']}
-            style={styles.spinner}
-          />
-          <View style={styles.spinnerCore} />
-        </Animated.View>
+        <LottieView
+          style={styles.spinnerContainer}
+          source={loadingBlocksAnimation}
+          autoPlay
+          resizeMode={'center'}
+        />
         <Animated.Text style={[styles.loadingText, textStyle]}>
           Loading...
         </Animated.Text>
@@ -102,8 +69,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   spinnerContainer: {
-    width: 48,
-    height: 48,
+    width: 100,
+    height: 100,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -112,15 +79,6 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 24,
     opacity: 0.5,
-  },
-  spinnerCore: {
-    position: 'absolute',
-    width: '70%',
-    height: '70%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 40,
   },
   innerSpinner: {
     width: '100%',

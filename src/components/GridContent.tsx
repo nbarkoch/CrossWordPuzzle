@@ -16,16 +16,16 @@ import {
   GridSize,
   Position,
   WordSequence,
-} from '../utils/types';
+} from '~/utils/types';
 import LetterBlock from './LetterBlock';
 import {
   getValidDirection,
   isDirectionValid,
   isValidWord,
   updateSelectedBlocks,
-} from '../utils/blockCalcs';
+} from '~/utils/blockCalcs';
 import WordsLines from './WordsLines';
-import {SEQUENCE_COLORS, VALID_DIRECTIONS} from '../utils/consts';
+import {SEQUENCE_COLORS, VALID_DIRECTIONS} from '~/utils/consts';
 import WordStatusDisplay from './WordsStatusDisplay';
 import LinearGradient from 'react-native-linear-gradient';
 import SuccessAnimation, {SuccessAnimationRef} from './SuccessAnimation';
