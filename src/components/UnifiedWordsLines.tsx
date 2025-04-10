@@ -31,7 +31,6 @@ const UnifiedWordsLines = React.memo(
       [sequences.length],
     );
 
-    // Memoize the saved sequences paths
     const savedPaths = useMemo(() => {
       return sequences.map((seq, index) => {
         const seqColorIndex = index % SEQUENCE_COLORS.length;
@@ -50,8 +49,11 @@ const UnifiedWordsLines = React.memo(
       });
     }, [sequences, blockSize]);
 
+    // Get current active color
     const activeColor =
-      colorIndex < 0 ? 'transparent' : SEQUENCE_COLORS[colorIndex].active;
+      colorIndex < 0
+        ? SEQUENCE_COLORS[sequences.length].active
+        : SEQUENCE_COLORS[colorIndex].active;
 
     return (
       <Canvas style={StyleSheet.absoluteFill}>
