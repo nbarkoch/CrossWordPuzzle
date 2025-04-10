@@ -75,7 +75,6 @@ export default function GridContent({
     gridHorizontalPadding,
   } = gridData;
   const [sequences, setSequences] = useState<WordSequence[]>([]);
-  const [activeIndex, setActiveIndex] = useState<number>(0);
   const [endDialog, setEndDialog] = useState<boolean>(false);
   const insets = useSafeAreaInsets();
   // Add state to track found letters
@@ -98,6 +97,7 @@ export default function GridContent({
   const endPointX = useSharedValue(0);
   const endPointY = useSharedValue(0);
   const isDrawing = useSharedValue(false);
+  const selectedIndex = useSharedValue<number>(-1);
   const startBlock = useSharedValue<Position>({row: -1, col: -1});
   const currentBlock = useSharedValue<Position>({row: -1, col: -1});
   const selectedBlocks = useSharedValue<Position[]>([]);
@@ -115,10 +115,6 @@ export default function GridContent({
   });
 
   const end = useDerivedValue(() => {
-    if (!isDrawing.value) {
-      return vec(endPointX.value, endPointY.value);
-    }
-
     const x =
       startBlock.value.col * blockSize +
       blockSize / 2 +
@@ -127,20 +123,19 @@ export default function GridContent({
       startBlock.value.row * blockSize +
       blockSize / 2 +
       animatedDy.value * animatedLength.value * blockSize;
-
     return vec(x, y);
   });
 
   const resetGame = useCallback(() => {
     // Reset all state variables
     setSequences([]);
-    setActiveIndex(0);
     // Reset all shared values
     setFoundLetters({});
     currentWord.value = '';
     endPointX.value = 0;
     endPointY.value = 0;
     isDrawing.value = false;
+    selectedIndex.value = -1;
     startBlock.value = {row: -1, col: -1};
     currentBlock.value = {row: -1, col: -1};
     selectedBlocks.value = [];
@@ -168,6 +163,7 @@ export default function GridContent({
     endPointX,
     endPointY,
     isDrawing,
+    selectedIndex,
     startBlock,
     currentBlock,
     selectedBlocks,
@@ -223,6 +219,7 @@ export default function GridContent({
   const resetSelection = useCallback(() => {
     'worklet';
     isDrawing.value = false;
+    selectedIndex.value = -1;
     startBlock.value = {row: -1, col: -1};
     currentBlock.value = {row: -1, col: -1};
     currentDirection.value = INITIAL_DIRECTION;
@@ -244,6 +241,7 @@ export default function GridContent({
     currentWord,
     isDrawing,
     selectedBlocks,
+    selectedIndex,
     startBlock,
   ]);
 
@@ -254,7 +252,6 @@ export default function GridContent({
     );
     if (matchingSequenceIndex !== -1) {
       resetSelection();
-      setActiveIndex(sequences.length);
     }
   }, [
     currentWord.value,
@@ -314,6 +311,7 @@ export default function GridContent({
         selectedBlocks.value = [{row, col}];
         isDrawing.value = true;
         currentWord.value = letterGrid[row][col];
+        selectedIndex.value = sequences.length;
 
         animatedLength.value = 0;
         animatedDx.value = 0;
@@ -408,6 +406,8 @@ export default function GridContent({
           const key = `${block.row}-${block.col}`;
           newFoundLetters[key] = true;
         });
+
+        isDrawing.value = false;
         runOnJS(setFoundLetters)(newFoundLetters);
       } else {
         // Reset current selection
@@ -417,7 +417,7 @@ export default function GridContent({
   const selectionPath = useDerivedValue(() => {
     const path = Skia.Path.Make();
 
-    if (isDrawing.value) {
+    if (selectedIndex.value === sequences.length) {
       path.moveTo(start.value.x, start.value.y);
       path.lineTo(end.value.x, end.value.y);
     }
@@ -477,7 +477,7 @@ export default function GridContent({
               sequences={sequences}
               blockSize={blockSize}
               selectionPath={selectionPath}
-              activeColorIndex={activeIndex}
+              activeIndex={selectedIndex}
             />
           </View>
 
