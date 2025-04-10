@@ -19,13 +19,13 @@ const NavigationBar: React.FC<NavigationBarProps> = ({title, onBack}) => {
       start={{x: 0, y: 0}}
       end={{x: 1, y: 0}}>
       <View style={styles.content}>
-        <View style={styles.placeholder} />
-        <Text style={styles.title}>{title}</Text>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Canvas style={styles.canvas}>
             <Path path={backArrow} color="#FFFFFF" />
           </Canvas>
         </TouchableOpacity>
+        <Text style={styles.title}>{title}</Text>
+        <View style={styles.placeholder} />
       </View>
     </LinearGradient>
   );
