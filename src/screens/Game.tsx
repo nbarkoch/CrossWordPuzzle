@@ -16,15 +16,13 @@ function Game({navigation}: GameProps) {
   const words = wordsDictionary[routeParams.category];
   const goToMenu = () => navigation.navigate('MainMenu');
   return (
-    <>
-      <GridLetters
-        blockSize={blockSize}
-        words={words}
-        goToMenu={goToMenu}
-        category={routeParams.category}
-        gridSize={routeParams.blockSize}
-      />
-    </>
+    <GridLetters
+      blockSize={blockSize}
+      words={words}
+      goToMenu={goToMenu}
+      category={routeParams.category}
+      gridSize={routeParams.blockSize}
+    />
   );
 }
 

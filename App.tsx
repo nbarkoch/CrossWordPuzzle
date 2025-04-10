@@ -6,8 +6,9 @@
  */
 
 import React from 'react';
-import {SafeAreaView, StyleSheet, useColorScheme} from 'react-native';
+import {I18nManager, StyleSheet, useColorScheme} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import AdBanner from '~/components/AdBanner';
@@ -15,19 +16,19 @@ import Navigation from '~/screens/Navigation';
 
 function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
-
+  I18nManager.allowRTL(false);
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
     flex: 1,
   };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
+    <SafeAreaProvider style={backgroundStyle}>
       <GestureHandlerRootView style={styles.sectionContainer}>
         <Navigation />
       </GestureHandlerRootView>
       <AdBanner />
-    </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 

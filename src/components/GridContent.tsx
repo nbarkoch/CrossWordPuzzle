@@ -9,7 +9,7 @@ import {
 } from 'react-native-reanimated';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import {StyleSheet, Dimensions, View} from 'react-native';
-import {Canvas, Path, Skia, vec} from '@shopify/react-native-skia';
+import {Skia, vec} from '@shopify/react-native-skia';
 import {
   CategorySelection,
   Direction,
@@ -24,16 +24,16 @@ import {
   isValidWord,
   updateSelectedBlocks,
 } from '~/utils/blockCalcs';
-import WordsLines from './WordsLines';
 import {SEQUENCE_COLORS, VALID_DIRECTIONS} from '~/utils/consts';
 import WordStatusDisplay from './WordsStatusDisplay';
 import LinearGradient from 'react-native-linear-gradient';
 import SuccessAnimation, {SuccessAnimationRef} from './SuccessAnimation';
-
+import UnifiedWordsLines from './UnifiedWordsLines'; // Import the new component
 import StripeProgress from './StripeProgression';
 import {Banner} from './AdBanner';
 import EndGameDialog from './dialogs/GameEndDialog';
 import GameHeader from './GameHeader';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 type GridConfig = {
   gridRows: number;
@@ -77,7 +77,7 @@ export default function GridContent({
   const [sequences, setSequences] = useState<WordSequence[]>([]);
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const [endDialog, setEndDialog] = useState<boolean>(false);
-
+  const insets = useSafeAreaInsets();
   // Add state to track found letters
   const [foundLetters, setFoundLetters] = useState<{[key: string]: boolean}>(
     {},
@@ -304,7 +304,9 @@ export default function GridContent({
       const col = Math.floor(
         (event.absoluteX - gridHorizontalPadding) / blockSize,
       );
-      const row = Math.floor((event.absoluteY - GRID_TOP) / blockSize);
+      const row = Math.floor(
+        (event.absoluteY - GRID_TOP - insets.top) / blockSize,
+      );
       if (row >= 0 && row < gridRows && col >= 0 && col < gridCols) {
         startBlock.value = {row, col};
         currentBlock.value = {row, col};
@@ -327,7 +329,9 @@ export default function GridContent({
       const col = Math.floor(
         (event.absoluteX - gridHorizontalPadding) / blockSize,
       );
-      const row = Math.floor((event.absoluteY - GRID_TOP) / blockSize);
+      const row = Math.floor(
+        (event.absoluteY - GRID_TOP - insets.top) / blockSize,
+      );
 
       if (
         row >= 0 &&
@@ -410,7 +414,6 @@ export default function GridContent({
         resetSelection();
       }
     });
-
   const selectionPath = useDerivedValue(() => {
     const path = Skia.Path.Make();
 
@@ -420,9 +423,6 @@ export default function GridContent({
     }
     return path;
   }, [sequences.length]);
-
-  const pathColor =
-    SEQUENCE_COLORS[activeIndex % SEQUENCE_COLORS.length].active;
 
   return (
     <>
@@ -470,30 +470,17 @@ export default function GridContent({
               }),
             )}
           </View>
-          {/* Permanent lines layer */}
+
+          {/* Replace both canvas layers with a single UnifiedWordsLines component */}
           <View style={styles.canvasContainer}>
-            <WordsLines sequences={sequences} blockSize={blockSize} />
+            <UnifiedWordsLines
+              sequences={sequences}
+              blockSize={blockSize}
+              selectionPath={selectionPath}
+              activeColorIndex={activeIndex}
+            />
           </View>
 
-          {/* Active drawing layer */}
-          <View style={styles.canvasContainer}>
-            <Canvas style={StyleSheet.absoluteFill}>
-              <Path
-                path={selectionPath}
-                style="stroke"
-                strokeWidth={blockSize}
-                strokeCap="round"
-                color={pathColor}
-              />
-              <Path
-                path={selectionPath}
-                style="stroke"
-                strokeWidth={blockSize - 8}
-                strokeCap="round"
-                color={pathColor}
-              />
-            </Canvas>
-          </View>
           {/* Letters layer on top */}
           <View style={styles.lettersContainer}>
             {letterGrid.map((row, rowIndex) =>
@@ -511,6 +498,8 @@ export default function GridContent({
           </View>
         </View>
       </GestureDetector>
+
+      {/* Keep all other UI components as they were */}
       <View style={[styles.successAnimationContainer]}>
         <SuccessAnimation ref={successAnimationRef} blockSize={blockSize} />
       </View>

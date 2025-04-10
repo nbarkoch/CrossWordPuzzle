@@ -7,8 +7,9 @@ const MIN_TAP_SIZE = Platform.select({
   default: 48,
 });
 
+const {width, height} = Dimensions.get('window');
+
 export const calculateOptimalGridSizes = () => {
-  const {width, height} = Dimensions.get('window');
   const GRID_BOTTOM = 200;
   const GRID_HORIZONTAL = 10;
 

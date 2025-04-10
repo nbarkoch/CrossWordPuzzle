@@ -116,7 +116,7 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
   const maskStyle = useAnimatedStyle(() => {
     'worklet';
     return {
-      right: interpolate(progress.value, [0, 100], [0, width]),
+      left: interpolate(progress.value, [0, 100], [0, width]),
     };
   });
 
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     bottom: 0,
-    left: 0,
+    right: 0,
     height: '100%',
     overflow: 'hidden',
     backgroundColor: '#9845d7c0',

@@ -43,7 +43,7 @@ const LoadingAnimation = () => {
           style={styles.spinnerContainer}
           source={loadingBlocksAnimation}
           autoPlay
-          resizeMode={'center'}
+          resizeMode={'cover'}
         />
         <Animated.Text style={[styles.loadingText, textStyle]}>
           Loading...
@@ -71,6 +71,7 @@ const styles = StyleSheet.create({
   spinnerContainer: {
     width: 100,
     height: 100,
+    transform: [{scale: 1.5}],
     justifyContent: 'center',
     alignItems: 'center',
   },

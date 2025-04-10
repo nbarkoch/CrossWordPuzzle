@@ -45,7 +45,7 @@ export default function LetterBlock({
       style={[
         styles.container,
         {
-          right: col * blockSize,
+          left: col * blockSize,
           top: row * blockSize,
           width: blockSize,
           height: blockSize,
