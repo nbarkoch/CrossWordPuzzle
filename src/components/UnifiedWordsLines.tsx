@@ -27,7 +27,7 @@ const UnifiedWordsLines = React.memo(
 
     useAnimatedReaction(
       () => (activeIndex.value === sequences.length ? activeIndex.value : -1),
-      value => runOnJS(setColorIndex)(value % SEQUENCE_COLORS.length),
+      value => runOnJS(setColorIndex)(value),
       [sequences.length],
     );
 
@@ -53,7 +53,7 @@ const UnifiedWordsLines = React.memo(
     const activeColor =
       colorIndex < 0
         ? SEQUENCE_COLORS[sequences.length % SEQUENCE_COLORS.length].active
-        : SEQUENCE_COLORS[colorIndex].active;
+        : SEQUENCE_COLORS[colorIndex % SEQUENCE_COLORS.length].active;
 
     return (
       <Canvas style={StyleSheet.absoluteFill}>

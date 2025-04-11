@@ -66,7 +66,7 @@ const generateDecoyPattern = (word: string): string => {
 const findValidPlacement = (
   grid: string[][],
   word: string,
-  maxAttempts: number = 100,
+  maxAttempts: number = 1000,
 ): {position: Position; direction: Direction} | null => {
   const gridRows = grid.length;
   const gridCols = grid[0].length;
