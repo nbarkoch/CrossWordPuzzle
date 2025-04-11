@@ -117,7 +117,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     zIndex: 10,
     shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   headerContentContainer: {
