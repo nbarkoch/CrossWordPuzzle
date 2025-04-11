@@ -52,7 +52,7 @@ const UnifiedWordsLines = React.memo(
     // Get current active color
     const activeColor =
       colorIndex < 0
-        ? SEQUENCE_COLORS[sequences.length].active
+        ? SEQUENCE_COLORS[sequences.length % SEQUENCE_COLORS.length].active
         : SEQUENCE_COLORS[colorIndex].active;
 
     return (
