@@ -24,7 +24,12 @@ import {
   isValidWord,
   updateSelectedBlocks,
 } from '~/utils/blockCalcs';
-import {SEQUENCE_COLORS, VALID_DIRECTIONS} from '~/utils/consts';
+import {
+  GRID_BOTTOM,
+  GRID_TOP,
+  INITIAL_DIRECTION,
+  SEQUENCE_COLORS,
+} from '~/utils/consts';
 import WordStatusDisplay from './WordsStatusDisplay';
 import LinearGradient from 'react-native-linear-gradient';
 import SuccessAnimation, {SuccessAnimationRef} from './SuccessAnimation';
@@ -45,10 +50,6 @@ type GridConfig = {
 };
 
 const {width} = Dimensions.get('screen');
-
-const GRID_TOP = 60;
-const GRID_BOTTOM = 300;
-const INITIAL_DIRECTION = VALID_DIRECTIONS[0];
 
 type GridContentProps = {
   gridData: GridConfig;

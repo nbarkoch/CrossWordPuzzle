@@ -1,41 +1,41 @@
-import {Dimensions, Platform} from 'react-native';
+import {Dimensions} from 'react-native';
 import {Direction, Position, WordSequence} from './types';
-
-const MIN_TAP_SIZE = Platform.select({
-  ios: 44,
-  android: 48,
-  default: 48,
-});
+import {BLOCK_SIZES, GRID_BOTTOM, GRID_HORIZONTAL} from './consts';
 
 const {width, height} = Dimensions.get('window');
 
-export const calculateOptimalGridSizes = () => {
-  const GRID_BOTTOM = 200;
-  const GRID_HORIZONTAL = 10;
+const calculateGridConfig = (blockSize: number) => ({
+  rows: Math.floor((height - GRID_BOTTOM) / blockSize),
+  cols: Math.floor((width - GRID_HORIZONTAL) / blockSize),
+  blockSize,
+});
 
-  const maxRows = Math.floor((height - GRID_BOTTOM) / MIN_TAP_SIZE);
-  const maxCols = Math.floor((width - GRID_HORIZONTAL) / MIN_TAP_SIZE);
+export const GRID_SIZES = {
+  large: calculateGridConfig(BLOCK_SIZES.large),
+  medium: calculateGridConfig(BLOCK_SIZES.medium),
+  small: calculateGridConfig(BLOCK_SIZES.small),
+};
+
+const preDimensions = (blockSize: number) => {
+  const gridRows = Math.floor((height - GRID_BOTTOM) / blockSize);
+  const gridCols = Math.floor((width - GRID_HORIZONTAL) / blockSize);
+  const gridWidth = gridCols * blockSize;
+  const gridHeight = gridRows * blockSize;
 
   return {
-    large: {
-      rows: maxRows,
-      cols: maxCols,
-      blockSize: MIN_TAP_SIZE,
-    },
-    medium: {
-      rows: Math.floor(maxRows * 0.9),
-      cols: Math.floor(maxCols * 0.9),
-      blockSize: 52,
-    },
-    small: {
-      rows: Math.floor(maxRows * 0.8),
-      cols: Math.floor(maxCols * 0.8),
-      blockSize: 60,
-    },
+    gridRows,
+    gridCols,
+    gridHorizontalPadding: (width - gridWidth) / 2,
+    width: gridWidth,
+    height: gridHeight,
   };
 };
 
-export const GRID_SIZES = calculateOptimalGridSizes();
+export const GRID_DIMENSIONS = {
+  large: preDimensions(BLOCK_SIZES.large),
+  medium: preDimensions(BLOCK_SIZES.medium),
+  small: preDimensions(BLOCK_SIZES.small),
+};
 
 // Calculate angle between two positions in degrees (0-360)
 export const calculateAngle = (start: Position, end: Position): number => {

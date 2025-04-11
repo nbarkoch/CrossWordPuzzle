@@ -1,22 +1,13 @@
-import React, {
-  Suspense,
-  useEffect,
-  useMemo,
-  useState,
-  useCallback,
-} from 'react';
-import {
-  StyleSheet,
-  Dimensions,
-  View,
-  TouchableOpacity,
-  Text,
-} from 'react-native';
+import React, {Suspense, useEffect, useState, useCallback} from 'react';
+import {StyleSheet, View, TouchableOpacity, Text} from 'react-native';
 import {generateLetterGrid} from '~/utils/generate';
 import LinearGradient from 'react-native-linear-gradient';
 import LoadingAnimation from './LoadingAnimation';
 import {Banner} from './AdBanner';
 import {CategorySelection, GridSize} from '~/utils/types';
+import {GRID_DIMENSIONS} from '~/utils/blockCalcs';
+import {BLOCK_SIZES, GRID_TOP} from '~/utils/consts';
+import {wordsDictionary} from '~/data/english';
 const GridContent = React.lazy(() => import('./GridContent'));
 
 type GridConfig = {
@@ -27,12 +18,6 @@ type GridConfig = {
   normalizedPlacedWords: string[];
   gridHorizontalPadding: number;
 };
-
-const {width, height} = Dimensions.get('screen');
-
-const GRID_TOP = 60;
-const GRID_BOTTOM = 300;
-const GRID_HORIZONTAL = 10;
 
 interface LoadingProps {
   gridDimensions: {
@@ -73,16 +58,12 @@ const initialGridData: GridConfig = {
 };
 
 type GridLettersProps = {
-  blockSize: number;
-  words: string[];
   goToMenu: () => void;
   category: CategorySelection;
   gridSize: GridSize;
 };
 
 export default function GridLetters({
-  blockSize,
-  words,
   goToMenu,
   gridSize,
   category,
@@ -93,19 +74,9 @@ export default function GridLetters({
   const [gameKey, setGameKey] = useState<number>(0);
 
   // Calculate basic dimensions before any generation
-  const preDimensions = useMemo(() => {
-    const gridRows = Math.floor((height - GRID_BOTTOM) / blockSize);
-    const gridCols = Math.floor((width - GRID_HORIZONTAL) / blockSize);
-    const gridHorizontalPadding = (width - gridCols * blockSize) / 2;
-
-    return {
-      gridRows,
-      gridCols,
-      gridHorizontalPadding,
-      width: gridCols * blockSize,
-      height: gridRows * blockSize,
-    };
-  }, [blockSize]);
+  const preDimensions = GRID_DIMENSIONS[gridSize];
+  const blockSize = BLOCK_SIZES[gridSize];
+  const words = wordsDictionary[category];
 
   // Reset game function
   const resetGame = useCallback(() => {

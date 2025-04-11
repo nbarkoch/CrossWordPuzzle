@@ -1,3 +1,4 @@
+import {Platform} from 'react-native';
 import {CategorySelection} from './types';
 
 export const VALID_DIRECTIONS = [
@@ -40,3 +41,22 @@ export const CATEGORIES_ICONS: Record<CategorySelection, string> = {
   space: '🚀',
   history: '📜',
 } as const;
+
+const GRID_HORIZONTAL = 10;
+const GRID_TOP = 60;
+const GRID_BOTTOM = 300;
+const INITIAL_DIRECTION = VALID_DIRECTIONS[0];
+
+export {GRID_HORIZONTAL, GRID_TOP, GRID_BOTTOM, INITIAL_DIRECTION};
+
+const MIN_TAP_SIZE = Platform.select({
+  ios: 44,
+  android: 48,
+  default: 48,
+});
+
+export const BLOCK_SIZES = {
+  large: MIN_TAP_SIZE,
+  medium: 52,
+  small: 60,
+};
