@@ -19,7 +19,11 @@ const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
         break;
       }
       case 'daily': {
-        navigation.navigate('GameOptions', {mode});
+        navigation.navigate('Game', {
+          category: 'general',
+          blockSize: 'medium',
+          mode,
+        });
         break;
       }
       default: {
