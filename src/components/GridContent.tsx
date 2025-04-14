@@ -13,6 +13,7 @@ import {Skia, vec} from '@shopify/react-native-skia';
 import {
   CategorySelection,
   Direction,
+  GameMode,
   GridSize,
   Position,
   WordSequence,
@@ -28,7 +29,7 @@ import {GRID_TOP, INITIAL_DIRECTION, SEQUENCE_COLORS} from '~/utils/consts';
 import WordStatusDisplay from './WordsStatusDisplay';
 import LinearGradient from 'react-native-linear-gradient';
 import SuccessAnimation, {SuccessAnimationRef} from './SuccessAnimation';
-import UnifiedWordsLines from './UnifiedWordsLines'; // Import the new component
+import UnifiedWordsLines from './UnifiedWordsLines';
 import EndGameDialog from './dialogs/GameEndDialog';
 import GameHeader from './GameHeader';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -48,6 +49,7 @@ type GridContentProps = {
   onGameReset: () => void;
   onGoHome: () => void;
   category: CategorySelection;
+  mode: GameMode;
   gridSize: GridSize;
 };
 export default function GridContent({
@@ -57,6 +59,7 @@ export default function GridContent({
   onGoHome,
   category,
   gridSize,
+  mode,
 }: GridContentProps) {
   const {
     gridRows,
@@ -69,11 +72,12 @@ export default function GridContent({
   const [sequences, setSequences] = useState<WordSequence[]>([]);
   const [endDialog, setEndDialog] = useState<boolean>(false);
   const insets = useSafeAreaInsets();
-  // Add state to track found letters
+
   const [foundLetters, setFoundLetters] = useState<{[key: string]: boolean}>(
     {},
   );
 
+  const resetEnabled = mode === 'classic';
   const gridDimensions = useMemo(
     () => ({
       width: gridCols * blockSize,
@@ -85,7 +89,6 @@ export default function GridContent({
   // Keep track of the current word being formed
   const currentWord = useSharedValue('');
 
-  // Your existing shared values
   const endPointX = useSharedValue(0);
   const endPointY = useSharedValue(0);
   const isDrawing = useSharedValue(false);
@@ -420,6 +423,7 @@ export default function GridContent({
     <>
       <GameHeader
         word={currentWord}
+        mode={mode}
         category={category}
         size={gridSize}
         onGoHome={onGoHome}
@@ -506,6 +510,7 @@ export default function GridContent({
         visible={endDialog}
         onPlayAgain={resetGame}
         onGoHome={onGoHome}
+        resetEnabled={resetEnabled}
       />
     </>
   );

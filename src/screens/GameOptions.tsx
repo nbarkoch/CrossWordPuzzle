@@ -25,6 +25,7 @@ import {
 } from '~/utils/types';
 import {Banner} from '~/components/AdBanner';
 import {CATEGORIES_ICONS} from '~/utils/consts';
+import {RouteProp, useRoute} from '@react-navigation/native';
 
 const {width} = Dimensions.get('window');
 const ITEM_SPACING = 10;
@@ -80,6 +81,9 @@ type GameOptionsProps = {
 };
 
 const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
+  const {mode} =
+    useRoute<RouteProp<RootStackParamList, 'GameOptions'>>().params;
+
   const [selectedCategory, setSelectedCategory] =
     useState<CategorySelection | null>(null);
   const [selectedSize, setSelectedSize] = useState<GridSize | null>(null);
@@ -88,7 +92,7 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
     category: CategorySelection;
     blockSize: GridSize;
   }): void {
-    navigation.navigate('Game', params);
+    navigation.navigate('Game', {...params, mode});
   }
 
   return (

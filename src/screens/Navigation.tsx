@@ -1,4 +1,3 @@
-// Navigation.tsx
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {NavigationContainer} from '@react-navigation/native';
@@ -8,16 +7,20 @@ import GameOptions from './GameOptions';
 import Leaderboard from './Leaderboard';
 import MainMenu from './MainMenu';
 import Settings from './Settings';
-import {CategorySelection, GridSize} from '~/utils/types';
+import {CategorySelection, GameMode, GridSize} from '~/utils/types';
 import {StyleSheet, View} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 export type RootStackParamList = {
   MainMenu: undefined;
-  Game: {category: CategorySelection; blockSize: GridSize};
+  Game: {
+    category: CategorySelection;
+    mode: GameMode;
+    blockSize: GridSize;
+  };
   Settings: undefined;
   GameOptions: {
-    mode: 'classic' | 'timed' | 'challenge';
+    mode: GameMode;
   };
   Leaderboard: undefined;
 };

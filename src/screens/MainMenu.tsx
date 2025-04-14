@@ -1,4 +1,3 @@
-// MainMenu.tsx
 import React from 'react';
 import {View, Text, StyleSheet, Pressable} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -6,14 +5,27 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 import Animated, {FadeInDown, FadeIn} from 'react-native-reanimated';
 import {RootStackParamList} from './Navigation';
+import {GameMode} from '~/utils/types';
 
 type MainMenuProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MainMenu'>;
 };
 
 const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
-  const handleModeSelection = (mode: 'classic' | 'timed' | 'challenge') => {
-    navigation.navigate('GameOptions', {mode});
+  const handleModeSelection = (mode: GameMode) => {
+    switch (mode) {
+      case 'classic': {
+        navigation.navigate('GameOptions', {mode});
+        break;
+      }
+      case 'daily': {
+        navigation.navigate('GameOptions', {mode});
+        break;
+      }
+      default: {
+        break;
+      }
+    }
   };
 
   return (
@@ -43,7 +55,7 @@ const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
           </Pressable>
 
           <Pressable
-            onPress={() => handleModeSelection('timed')}
+            onPress={() => handleModeSelection('daily')}
             style={({pressed}) => [
               styles.modeButton,
               pressed && styles.buttonPressed,
@@ -139,7 +151,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     elevation: 3,
-    backgroundColor: 'black', // Required for shadow to work correctly
+    backgroundColor: 'black',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,

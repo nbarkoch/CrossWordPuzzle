@@ -16,6 +16,7 @@ export type WordSequence = {
 };
 
 export const CATEGORIES = [
+  'general',
   'animals',
   'sports',
   'food',
@@ -34,3 +35,4 @@ export type CategorySelection = (typeof CATEGORIES)[number];
 
 export const GRID_TYPE_SIZES = ['small', 'medium', 'large'] as const;
 export type GridSize = (typeof GRID_TYPE_SIZES)[number];
+export type GameMode = 'classic' | 'daily' | 'challenge';

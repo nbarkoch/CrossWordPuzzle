@@ -28,6 +28,7 @@ export const SEQUENCE_COLORS = [
 ];
 
 export const CATEGORIES_ICONS: Record<CategorySelection, string> = {
+  general: '🌐',
   animals: '🦁',
   sports: '⚽',
   food: '🍕',

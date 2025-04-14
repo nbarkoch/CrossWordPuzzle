@@ -16,6 +16,7 @@ function Game({navigation}: GameProps) {
       goToMenu={goToMenu}
       category={routeParams.category}
       gridSize={routeParams.blockSize}
+      mode={routeParams.mode}
     />
   );
 }

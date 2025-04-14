@@ -31,6 +31,7 @@ type EndGameDialogProps = {
   onGoHome: () => void;
   wordsFound?: number;
   totalWords?: number;
+  resetEnabled?: boolean;
 };
 
 // Star component that encapsulates its own animation
@@ -183,7 +184,6 @@ const StarburstAnimation = () => {
     trophyScale,
   ]);
 
-  // Animated styles
   const primaryRayStyle = useAnimatedStyle(() => ({
     transform: [
       {scale: primaryScale.value},
@@ -221,6 +221,7 @@ const EndGameDialog: React.FC<EndGameDialogProps> = ({
   visible,
   onPlayAgain,
   onGoHome,
+  resetEnabled,
 }) => {
   const confettiAnimation = useRef<LottieView>(null);
 
@@ -286,16 +287,18 @@ const EndGameDialog: React.FC<EndGameDialogProps> = ({
                 </LinearGradient>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.buttonWrapper}
-                onPress={onPlayAgain}
-                activeOpacity={0.8}>
-                <LinearGradient
-                  colors={['#e77cff', '#d93cfc']}
-                  style={styles.button}>
-                  <Text style={styles.buttonText}>Play Again</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+              {resetEnabled && (
+                <TouchableOpacity
+                  style={styles.buttonWrapper}
+                  onPress={onPlayAgain}
+                  activeOpacity={0.8}>
+                  <LinearGradient
+                    colors={['#e77cff', '#d93cfc']}
+                    style={styles.button}>
+                    <Text style={styles.buttonText}>Play Again</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
             </Animated.View>
           </LinearGradient>
         </Animated.View>

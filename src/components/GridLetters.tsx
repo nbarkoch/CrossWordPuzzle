@@ -4,10 +4,11 @@ import {generateLetterGrid} from '~/utils/generate';
 import LinearGradient from 'react-native-linear-gradient';
 import LoadingAnimation from './LoadingAnimation';
 import {Banner} from './AdBanner';
-import {CategorySelection, GridSize} from '~/utils/types';
+import {CategorySelection, GameMode, GridSize} from '~/utils/types';
 import {GRID_DIMENSIONS} from '~/utils/blockCalcs';
 import {BLOCK_SIZES, GRID_TOP} from '~/utils/consts';
 import {wordsDictionary} from '~/data/english';
+
 const GridContent = React.lazy(() => import('./GridContent'));
 
 type GridConfig = {
@@ -59,13 +60,15 @@ const initialGridData: GridConfig = {
 
 type GridLettersProps = {
   goToMenu: () => void;
-  category: CategorySelection;
   gridSize: GridSize;
+  category: CategorySelection;
+  mode: GameMode;
 };
 
 export default function GridLetters({
-  goToMenu,
+  mode,
   gridSize,
+  goToMenu,
   category,
 }: GridLettersProps) {
   const [isLoading, setIsLoading] = useState(true);
@@ -76,7 +79,6 @@ export default function GridLetters({
   // Calculate basic dimensions before any generation
   const preDimensions = GRID_DIMENSIONS[gridSize];
   const blockSize = BLOCK_SIZES[gridSize];
-  const words = wordsDictionary[category];
 
   // Reset game function
   const resetGame = useCallback(() => {
@@ -102,7 +104,13 @@ export default function GridLetters({
             normalizedPlacedWords: string[];
           }>(resolve => {
             try {
-              const result = generateLetterGrid(gridCols, gridRows, words);
+              const result = generateLetterGrid(
+                gridCols,
+                gridRows,
+                wordsDictionary[category],
+                mode === 'daily',
+              );
+
               resolve(result);
             } catch ($error) {
               console.error('Grid generation error:', $error);
@@ -149,7 +157,7 @@ export default function GridLetters({
     return () => {
       isMounted = false;
     };
-  }, [blockSize, words, gameKey, preDimensions]);
+  }, [blockSize, gameKey, preDimensions, mode, category]);
 
   // Check if we have a valid grid with content
   const hasValidGrid = gridData.letterGrid.length > 0 && !isLoading && !error;
@@ -192,6 +200,7 @@ export default function GridLetters({
               onGameReset={resetGame}
               gridSize={gridSize}
               category={category}
+              mode={mode}
             />
           )}
         </Suspense>
