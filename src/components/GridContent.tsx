@@ -8,7 +8,7 @@ import {
   runOnJS,
 } from 'react-native-reanimated';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
-import {StyleSheet, Dimensions, View} from 'react-native';
+import {StyleSheet, View} from 'react-native';
 import {Skia, vec} from '@shopify/react-native-skia';
 import {
   CategorySelection,
@@ -24,18 +24,11 @@ import {
   isValidWord,
   updateSelectedBlocks,
 } from '~/utils/blockCalcs';
-import {
-  GRID_BOTTOM,
-  GRID_TOP,
-  INITIAL_DIRECTION,
-  SEQUENCE_COLORS,
-} from '~/utils/consts';
+import {GRID_TOP, INITIAL_DIRECTION, SEQUENCE_COLORS} from '~/utils/consts';
 import WordStatusDisplay from './WordsStatusDisplay';
 import LinearGradient from 'react-native-linear-gradient';
 import SuccessAnimation, {SuccessAnimationRef} from './SuccessAnimation';
 import UnifiedWordsLines from './UnifiedWordsLines'; // Import the new component
-import StripeProgress from './StripeProgression';
-import {Banner} from './AdBanner';
 import EndGameDialog from './dialogs/GameEndDialog';
 import GameHeader from './GameHeader';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -48,8 +41,6 @@ type GridConfig = {
   normalizedPlacedWords: string[];
   gridHorizontalPadding: number;
 };
-
-const {width} = Dimensions.get('screen');
 
 type GridContentProps = {
   gridData: GridConfig;
@@ -505,20 +496,10 @@ export default function GridContent({
         <SuccessAnimation ref={successAnimationRef} blockSize={blockSize} />
       </View>
       <View style={styles.bottomContainer}>
-        <View style={styles.progress}>
-          <StripeProgress
-            width={300}
-            height={30}
-            progress={progress}
-            stripeWidth={5}
-            compression={3}
-            stripeSpeed={1500}
-          />
-        </View>
-
         <WordStatusDisplay
           normalizedPlacedWords={normalizedPlacedWords}
           foundSequences={sequences}
+          progress={progress}
         />
       </View>
       <EndGameDialog
@@ -572,10 +553,9 @@ const styles = StyleSheet.create({
     overflow: 'visible',
     pointerEvents: 'none',
   },
-  progress: {
+
+  bottomContainer: {
     position: 'absolute',
-    bottom: 80 + Banner.height,
-    right: (width - 300) / 2,
+    bottom: 0,
   },
-  bottomContainer: {position: 'absolute', bottom: 0, maxHeight: GRID_BOTTOM},
 });

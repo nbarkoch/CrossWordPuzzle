@@ -1,19 +1,24 @@
 import React from 'react';
-import Animated, {FadeInDown} from 'react-native-reanimated';
-import {FlatList, StyleSheet, Text} from 'react-native';
+import Animated, {FadeInDown, SharedValue} from 'react-native-reanimated';
+import {FlatList, StyleSheet, Text, View, Dimensions} from 'react-native';
 import {WordSequence} from '~/utils/types';
 import LinearGradient from 'react-native-linear-gradient';
 import {normalizeWord} from '~/utils/generate';
 import {Banner} from './AdBanner';
+import StripeProgress from './StripeProgression';
+
+const {width} = Dimensions.get('window');
 
 type WordStatusDisplayProps = {
   normalizedPlacedWords: string[];
   foundSequences: WordSequence[];
+  progress: SharedValue<number>;
 };
 
 const WordStatusDisplay = ({
   normalizedPlacedWords,
   foundSequences,
+  progress,
 }: WordStatusDisplayProps) => {
   const wordsData = React.useMemo(
     () =>
@@ -25,6 +30,9 @@ const WordStatusDisplay = ({
       })),
     [normalizedPlacedWords, foundSequences],
   );
+
+  const wordsFound = foundSequences.length;
+  const totalWords = normalizedPlacedWords.length;
 
   const renderItem = ({
     item,
@@ -48,30 +56,51 @@ const WordStatusDisplay = ({
 
   return (
     <LinearGradient
-      colors={['transparent', '#c568ff', '#c568ff']}
+      colors={['transparent', '#c568ff']}
       style={styles.container}>
-      <FlatList
-        horizontal
-        data={wordsData}
-        renderItem={renderItem}
-        keyExtractor={item => item.word}
-        style={styles.container}
-        removeClippedSubviews={false}
-      />
+      <View style={styles.progressContainer}>
+        <StripeProgress
+          width={300}
+          height={30}
+          progress={progress}
+          stripeWidth={5}
+          compression={3}
+          stripeSpeed={1500}
+          wordsFound={wordsFound}
+          totalWords={totalWords}
+        />
+      </View>
+      <View style={styles.listContainer}>
+        <FlatList
+          horizontal
+          data={wordsData}
+          renderItem={renderItem}
+          keyExtractor={item => item.word}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        />
+      </View>
     </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 8,
-    paddingBottom: Banner.height,
+    paddingTop: 10,
+    paddingBottom: Banner.height + 20,
+    width: '100%',
+  },
+  progressContainer: {
+    alignItems: 'center',
+    marginBottom: 7,
+  },
+
+  listContainer: {
+    width: width,
   },
   scrollContent: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 8,
-    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingBottom: 5,
   },
   wordBadge: {
     paddingHorizontal: 12,

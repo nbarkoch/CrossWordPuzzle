@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {View, StyleSheet} from 'react-native';
+import {View, StyleSheet, Text} from 'react-native';
 import {Canvas, Path, Skia} from '@shopify/react-native-skia';
 import Animated, {
   useSharedValue,
@@ -20,6 +20,8 @@ interface StripeProgressProps {
   width: number;
   height: number;
   progress: SharedValue<number>;
+  wordsFound?: number;
+  totalWords?: number;
   stripeWidth?: number;
   stripeSpeed?: number;
   compression?: number;
@@ -65,19 +67,21 @@ const createStripeElements = (
   return stripes;
 };
 
-const formatProgress = (value: number) => {
-  'worklet';
-  return `${Math.round(value)}%`;
-};
-
 const StripeProgress: React.FC<StripeProgressProps> = ({
   width,
   height,
   progress,
+  wordsFound = 0,
+  totalWords = 0,
   stripeWidth = 10,
   stripeSpeed = 2000,
   compression = 2,
 }) => {
+  const formatProgress = (value: number) => {
+    'worklet';
+    return `${Math.round(value)}%`;
+  };
+
   const offsetX = useSharedValue(0);
   const [displayText, setDisplayText] = useState(
     formatProgress(progress.value),
@@ -121,25 +125,57 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
   });
 
   return (
-    <View style={[styles.container, {width, height, borderRadius: height / 2}]}>
-      {/* Filled stripes as base layer */}
-      <View style={styles.stripesContainer}>
-        <Animated.View style={animatedStyle}>
-          <Canvas style={{width, height}}>{filledStripes}</Canvas>
-        </Animated.View>
+    <View style={styles.wrapper}>
+      <View style={styles.wordCountContainer}>
+        <Text style={styles.wordCountText}>
+          {wordsFound}/{totalWords} WORDS
+        </Text>
       </View>
 
-      {/* Empty stripes as mask layer */}
-      <Animated.View style={[styles.progressMask, maskStyle]} />
+      <View
+        style={[styles.container, {width, height, borderRadius: height / 2}]}>
+        {/* Filled stripes as base layer */}
+        <View style={styles.stripesContainer}>
+          <Animated.View style={animatedStyle}>
+            <Canvas style={{width, height}}>{filledStripes}</Canvas>
+          </Animated.View>
+        </View>
 
-      <View style={styles.textContainer}>
-        <Animated.Text style={styles.text}>{displayText}</Animated.Text>
+        {/* Empty stripes as mask layer */}
+        <Animated.View style={[styles.progressMask, maskStyle]} />
+
+        <View style={styles.textContainer}>
+          <Animated.Text style={styles.text}>{displayText}</Animated.Text>
+        </View>
+        <View style={styles.wordCountContainer}>
+          <Text style={styles.wordCountText}>
+            {wordsFound}/{totalWords} WORDS
+          </Text>
+        </View>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  wrapper: {
+    alignItems: 'center',
+  },
+  wordCountContainer: {
+    position: 'absolute',
+    top: 0,
+    backgroundColor: '#9845d740',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  wordCountText: {
+    color: '#FFFFFFf0',
+    fontWeight: '700',
+    fontSize: 12,
+    letterSpacing: 1,
+  },
   container: {
     position: 'relative',
     overflow: 'hidden',
