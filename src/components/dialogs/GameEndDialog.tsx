@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import Animated, {
   BounceIn,
   withSpring,
 } from 'react-native-reanimated';
+import LottieView from 'lottie-react-native';
 
 const {width} = Dimensions.get('window');
 
@@ -221,6 +222,15 @@ const EndGameDialog: React.FC<EndGameDialogProps> = ({
   onPlayAgain,
   onGoHome,
 }) => {
+  const confettiAnimation = useRef<LottieView>(null);
+
+  useEffect(() => {
+    // Play confetti animation when dialog becomes visible
+    if (visible && confettiAnimation.current) {
+      confettiAnimation.current.play();
+    }
+  }, [visible]);
+
   return (
     <Modal
       transparent
@@ -228,6 +238,19 @@ const EndGameDialog: React.FC<EndGameDialogProps> = ({
       animationType="fade"
       statusBarTranslucent>
       <View style={styles.modalOverlay}>
+        {/* Confetti animation that overlays the entire screen */}
+        <View style={styles.confettiContainer}>
+          <LottieView
+            ref={confettiAnimation}
+            source={require('~/assets/party.json')}
+            style={styles.confettiAnimation}
+            loop={false}
+            autoPlay={false}
+            resizeMode="cover"
+            speed={0.75}
+          />
+        </View>
+
         <Animated.View entering={BounceIn} style={styles.dialogContainer}>
           <LinearGradient
             colors={['#994CFD', '#6F54FB']}
@@ -288,6 +311,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  confettiContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+    pointerEvents: 'none',
+  },
+  confettiAnimation: {
+    width: '100%',
+    height: '100%',
+  },
   dialogContainer: {
     width: width * 0.85,
     maxWidth: 340,
@@ -297,6 +333,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
     shadowRadius: 8,
+    zIndex: 2,
   },
   dialogGradient: {
     padding: 24,
