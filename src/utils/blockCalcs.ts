@@ -2,7 +2,7 @@ import {Dimensions} from 'react-native';
 import {Direction, Position, WordSequence} from './types';
 import {BLOCK_SIZES, GRID_BOTTOM, GRID_HORIZONTAL} from './consts';
 
-const {width, height} = Dimensions.get('window');
+const {width, height} = Dimensions.get('screen');
 
 const calculateGridConfig = (blockSize: number) => ({
   rows: Math.floor((height - GRID_BOTTOM) / blockSize),

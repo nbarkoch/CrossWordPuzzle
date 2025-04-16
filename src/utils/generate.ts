@@ -1,4 +1,3 @@
-// src/utils/generate.ts
 import {VALID_DIRECTIONS} from './consts';
 import {Direction, Position} from './types';
 
@@ -343,6 +342,7 @@ export const generateLetterGrid = (
   gridRows: number,
   words: string[],
   isDaily: boolean = false,
+  density: number = 0.1,
 ): {
   grid: string[][];
   placedWords: string[];
@@ -366,6 +366,8 @@ export const generateLetterGrid = (
     throw new Error('No valid words provided for the grid size');
   }
 
+  const maxWords = Math.max(3, Math.floor(gridRows * gridCols * density));
+
   // If isDaily, we want a deterministic shuffle
   const shuffledWords = [...validWords];
   if (isDaily) {
@@ -382,13 +384,19 @@ export const generateLetterGrid = (
     shuffledWords.sort(() => random() - 0.5);
   }
 
-  const placedWords: string[] = [];
-  let remainingAttempts = shuffledWords.length * 2;
+  const limitedShuffledWords = shuffledWords.slice(0, maxWords * 2);
 
-  // Try to place words until we run out of attempts or words
-  while (remainingAttempts > 0 && shuffledWords.length > 0) {
-    const randomIndex = Math.floor(random() * shuffledWords.length);
-    const word = shuffledWords[randomIndex];
+  const placedWords: string[] = [];
+  let remainingAttempts = limitedShuffledWords.length * 2;
+
+  // Try to place words until we run out of attempts, words, or reach maxWords
+  while (
+    remainingAttempts > 0 &&
+    limitedShuffledWords.length > 0 &&
+    placedWords.length < maxWords
+  ) {
+    const randomIndex = Math.floor(random() * limitedShuffledWords.length);
+    const word = limitedShuffledWords[randomIndex];
     const normalizedWord = normalizeWord(word);
 
     const placement = findValidPlacement(grid, normalizedWord, random);
@@ -396,8 +404,8 @@ export const generateLetterGrid = (
     if (placement) {
       placeWord(grid, normalizedWord, placement.position, placement.direction);
       placedWords.push(word);
-      shuffledWords.splice(randomIndex, 1);
-      remainingAttempts = shuffledWords.length * 2;
+      limitedShuffledWords.splice(randomIndex, 1);
+      remainingAttempts = limitedShuffledWords.length * 2;
     } else {
       remainingAttempts--;
     }

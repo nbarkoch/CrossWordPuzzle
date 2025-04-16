@@ -45,19 +45,31 @@ export const CATEGORIES_ICONS: Record<CategorySelection, string> = {
 
 const GRID_HORIZONTAL = 10;
 const GRID_TOP = 60;
-const GRID_BOTTOM = 300;
+const GRID_BOTTOM = 270;
 const INITIAL_DIRECTION = VALID_DIRECTIONS[0];
 
 export {GRID_HORIZONTAL, GRID_TOP, GRID_BOTTOM, INITIAL_DIRECTION};
 
 const MIN_TAP_SIZE = Platform.select({
-  ios: 44,
+  ios: 52,
   android: 48,
   default: 48,
 });
 
+const MID_TAP_SIZE = Platform.select({
+  ios: 60,
+  android: 52,
+  default: 52,
+});
+
+const MAX_TAP_SIZE = Platform.select({
+  ios: 70,
+  android: 60,
+  default: 60,
+});
+
 export const BLOCK_SIZES = {
   large: MIN_TAP_SIZE,
-  medium: 52,
-  small: 60,
+  medium: MID_TAP_SIZE,
+  small: MAX_TAP_SIZE,
 };
