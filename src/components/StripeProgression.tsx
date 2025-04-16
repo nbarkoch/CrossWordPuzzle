@@ -126,12 +126,6 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.wordCountContainer}>
-        <Text style={styles.wordCountText}>
-          {wordsFound}/{totalWords} WORDS
-        </Text>
-      </View>
-
       <View
         style={[styles.container, {width, height, borderRadius: height / 2}]}>
         {/* Filled stripes as base layer */}

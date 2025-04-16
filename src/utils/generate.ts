@@ -342,7 +342,7 @@ export const generateLetterGrid = (
   gridRows: number,
   words: string[],
   isDaily: boolean = false,
-  density: number = 0.1,
+  density: number = 0.5,
 ): {
   grid: string[][];
   placedWords: string[];
@@ -359,7 +359,7 @@ export const generateLetterGrid = (
 
   // Get unique words and filter by length
   const validWords = [...new Set(words)].filter(
-    word => normalizeWord(word).length <= Math.max(gridRows, gridCols),
+    word => normalizeWord(word).length <= Math.min(gridRows, gridCols),
   );
 
   if (validWords.length === 0) {
