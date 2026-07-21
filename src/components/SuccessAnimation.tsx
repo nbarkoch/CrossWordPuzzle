@@ -51,8 +51,8 @@ const SuccessAnimation = forwardRef<SuccessAnimationRef, Props>(
           offsetY.value = y;
 
           scale.value = withSequence(
-            withTiming(1, {duration: 0}),
-            withSpring(1.5, {mass: 0.5, damping: 12, stiffness: 90}),
+            withTiming(0, {duration: 0}),
+            withSpring(1, {mass: 0.5, damping: 12, stiffness: 90}),
           );
 
           opacity.value = withSequence(
@@ -92,53 +92,12 @@ const SuccessAnimation = forwardRef<SuccessAnimationRef, Props>(
       return $path;
     });
 
-    const matrix = useDerivedValue(() => {
-      if (positions.value.length < 2) {
-        return Skia.Matrix();
-      }
+    const outerStrokeWidth = useDerivedValue(() => {
+      return blockSize * (1.15 + scale.value * 0.65);
+    });
 
-      let centerX = 0;
-      let centerY = 0;
-      let minX = Infinity;
-      let minY = Infinity;
-      let maxX = -Infinity;
-      let maxY = -Infinity;
-
-      // Calculate bounds and center
-      positions.value.forEach(pos => {
-        const x = pos.col * blockSize + blockSize / 2 + offsetX.value;
-        const y = pos.row * blockSize + blockSize / 2 + offsetY.value;
-        centerX += x;
-        centerY += y;
-        minX = Math.min(minX, x);
-        minY = Math.min(minY, y);
-        maxX = Math.max(maxX, x);
-        maxY = Math.max(maxY, y);
-      });
-
-      centerX /= positions.value.length;
-      centerY /= positions.value.length;
-
-      const $width = Math.abs(maxX - minX) + blockSize;
-      const $height = Math.abs(maxY - minY) + blockSize;
-      const aspectRatio = $width / $height;
-
-      let scaleX = scale.value;
-      let scaleY = scale.value;
-      if (aspectRatio !== 1) {
-        if (aspectRatio > 1) {
-          scaleX = scale.value * 0.8;
-        } else {
-          scaleY = scale.value * 0.8;
-        }
-      }
-
-      const $matrix = Skia.Matrix();
-      $matrix.translate(centerX, centerY);
-      $matrix.scale(scaleX, scaleY);
-      $matrix.translate(-centerX, -centerY);
-
-      return $matrix;
+    const innerStrokeWidth = useDerivedValue(() => {
+      return blockSize * (0.9 + scale.value * 0.65);
     });
 
     const outerColor = useDerivedValue(() => {
@@ -162,36 +121,28 @@ const SuccessAnimation = forwardRef<SuccessAnimationRef, Props>(
 
     return (
       <Canvas style={StyleSheet.absoluteFill}>
-        <Group matrix={matrix}>
-          <Mask
-            mode="luminance"
-            mask={
-              <Group>
-                <Path
-                  path={path}
-                  style="stroke"
-                  strokeWidth={blockSize * 1.15}
-                  strokeCap="round"
-                  color="white"
-                />
-                <Path
-                  path={path}
-                  style="stroke"
-                  strokeWidth={blockSize * 0.9}
-                  strokeCap="round"
-                  color="black"
-                />
-              </Group>
-            }>
-            <Rect
-              x={0}
-              y={0}
-              width={width}
-              height={height}
-              color={outerColor}
-            />
-          </Mask>
-        </Group>
+        <Mask
+          mode="luminance"
+          mask={
+            <Group>
+              <Path
+                path={path}
+                style="stroke"
+                strokeWidth={outerStrokeWidth}
+                strokeCap="round"
+                color="white"
+              />
+              <Path
+                path={path}
+                style="stroke"
+                strokeWidth={innerStrokeWidth}
+                strokeCap="round"
+                color="black"
+              />
+            </Group>
+          }>
+          <Rect x={0} y={0} width={width} height={height} color={outerColor} />
+        </Mask>
       </Canvas>
     );
   },
