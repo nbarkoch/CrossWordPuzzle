@@ -1,20 +1,21 @@
-import React, {useEffect, useState} from 'react';
-import {View, StyleSheet, Text} from 'react-native';
+import React, {useEffect} from 'react';
+import {View, StyleSheet, Text, TextInput} from 'react-native';
 import {Canvas, Path, Skia} from '@shopify/react-native-skia';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useAnimatedProps,
+  useDerivedValue,
   withRepeat,
   withTiming,
   cancelAnimation,
   SharedValue,
   interpolate,
   Easing,
-  useAnimatedReaction,
 } from 'react-native-reanimated';
-import {runOnJS} from 'react-native-worklets';
 
 const FILLED_COLOR: [string, string] = ['#e77cff', '#d93cfc'];
+const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
 interface StripeProgressProps {
   width: number;
@@ -77,15 +78,8 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
   stripeSpeed = 2000,
   compression = 2,
 }) => {
-  const formatProgress = (value: number) => {
-    'worklet';
-    return `${Math.round(value)}%`;
-  };
-
   const offsetX = useSharedValue(0);
-  const [displayText, setDisplayText] = useState(
-    formatProgress(progress.value),
-  );
+  const displayText = useDerivedValue(() => `${Math.round(progress.value)}%`);
 
   const filledStripes = React.useMemo(() => {
     return createStripeElements(
@@ -97,13 +91,10 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
     );
   }, [width, height, stripeWidth, compression]);
 
-  useAnimatedReaction(
-    () => progress.value,
-    currentValue => {
-      runOnJS(setDisplayText)(formatProgress(currentValue));
-    },
-    [progress],
-  );
+  const animatedTextProps = useAnimatedProps(() => ({
+    text: displayText.value,
+    defaultValue: displayText.value,
+  }));
 
   useEffect(() => {
     startAnimation(offsetX, stripeWidth, stripeSpeed);
@@ -139,7 +130,13 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
         <Animated.View style={[styles.progressMask, maskStyle]} />
 
         <View style={styles.textContainer}>
-          <Animated.Text style={styles.text}>{displayText}</Animated.Text>
+          <AnimatedTextInput
+            animatedProps={animatedTextProps}
+            editable={false}
+            pointerEvents="none"
+            style={[styles.text, styles.progressText]}
+            underlineColorAndroid="transparent"
+          />
         </View>
         <View style={styles.wordCountContainer}>
           <Text style={styles.wordCountText}>
@@ -201,9 +198,14 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: '900',
+    textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: {width: 1, height: 1},
     textShadowRadius: 2,
+  },
+  progressText: {
+    width: '100%',
+    padding: 0,
   },
 });
 
