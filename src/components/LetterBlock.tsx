@@ -52,7 +52,7 @@ export default function LetterBlock({
         },
       ]}>
       <Animated.View style={[styles.letter, animatedStyle]}>
-        <Text style={[styles.text, {fontSize: blockSize / 1.75}]}>
+        <Text style={[styles.text, {fontSize: blockSize / 1.8}]}>
           {letter.toLocaleUpperCase()}
         </Text>
       </Animated.View>
