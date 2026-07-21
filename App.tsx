@@ -10,11 +10,15 @@ import {I18nManager, StyleSheet, useColorScheme} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
-import {Colors} from 'react-native/Libraries/NewAppScreen';
 import AdBanner from '~/components/AdBanner';
 import Navigation from '~/screens/Navigation';
 
-function App(): JSX.Element {
+const Colors = {
+  darker: '#000000',
+  lighter: '#ffffff',
+};
+
+function App(): React.ReactElement {
   const isDarkMode = useColorScheme() === 'dark';
   I18nManager.allowRTL(false);
   const backgroundStyle = {

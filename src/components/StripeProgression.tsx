@@ -50,7 +50,7 @@ const createStripeElements = (
   compression: number,
   colors: [string, string],
 ) => {
-  const stripes: JSX.Element[] = [];
+  const stripes: React.ReactElement[] = [];
 
   for (let i = -stripeWidth; i < width + compression; i += stripeWidth) {
     const path = Skia.Path.Make();

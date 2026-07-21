@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   gridContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     position: 'absolute',
     overflow: 'hidden',
     borderRadius: 15,
@@ -532,17 +532,17 @@ const styles = StyleSheet.create({
     borderColor: '#C4A7EC',
   },
   blocksContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     position: 'absolute',
   },
   canvasContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     position: 'absolute',
     backgroundColor: 'transparent',
     pointerEvents: 'none',
   },
   lettersContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     position: 'absolute',
     zIndex: 3,
   },

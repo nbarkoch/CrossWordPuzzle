@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     paddingBottom: Banner.height,
   },
   gridContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     position: 'absolute',
     overflow: 'hidden',
     borderRadius: 15,

@@ -1,14 +1,16 @@
-// prettier-ignore
 {
-  "extends": "@tsconfig/react-native/tsconfig.json",    
+  "extends": "@react-native/typescript-config",
   "compilerOptions": {
-    "skipLibCheck": true,                         
+    "jsx": "react",
+    "skipLibCheck": true,
     "types": ["jest"],
-    "resolveJsonModule": true, 
-    "esModuleInterop": true,    
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
     "baseUrl": ".",
     "paths": {
-    "~/*": ["src/*"]
+      "~/*": ["src/*"]
     }
-  }
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["**/node_modules", "**/Pods"]
 }

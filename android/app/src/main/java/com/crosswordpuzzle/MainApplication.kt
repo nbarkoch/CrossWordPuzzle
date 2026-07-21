@@ -1,0 +1,27 @@
+package com.crosswordpuzzle
+
+import android.app.Application
+import com.facebook.react.PackageList
+import com.facebook.react.ReactApplication
+import com.facebook.react.ReactHost
+import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
+import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
+import com.facebook.react.modules.i18nmanager.I18nUtil
+
+class MainApplication : Application(), ReactApplication {
+
+    override val reactHost: ReactHost by lazy {
+        getDefaultReactHost(
+            context = applicationContext,
+            packageList = PackageList(this).packages,
+        )
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        val sharedI18nUtilInstance = I18nUtil.getInstance()
+        sharedI18nUtilInstance.forceRTL(this, false)
+        sharedI18nUtilInstance.allowRTL(this, false)
+        loadReactNative(this)
+    }
+}
