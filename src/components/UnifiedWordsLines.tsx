@@ -6,11 +6,11 @@ import {SEQUENCE_COLORS} from '~/utils/consts';
 import {
   SharedValue,
   useAnimatedReaction,
-  runOnJS,
   useSharedValue,
   withSpring,
   useDerivedValue,
 } from 'react-native-reanimated';
+import {runOnJS} from 'react-native-worklets';
 
 type UnifiedWordsLinesProps = {
   sequences: WordSequence[];
@@ -118,8 +118,8 @@ const UnifiedWordsLines = React.memo(
       const currentColorIndex = isExiting.value
         ? exitingColorIndex.value
         : activeIndex.value === sequences.length
-        ? sequences.length
-        : colorIndex;
+          ? sequences.length
+          : colorIndex;
       return SEQUENCE_COLORS[
         (currentColorIndex > -1 ? currentColorIndex : 0) %
           SEQUENCE_COLORS.length

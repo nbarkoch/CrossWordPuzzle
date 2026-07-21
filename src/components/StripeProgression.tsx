@@ -11,8 +11,8 @@ import Animated, {
   interpolate,
   Easing,
   useAnimatedReaction,
-  runOnJS,
 } from 'react-native-reanimated';
+import {runOnJS} from 'react-native-worklets';
 
 const FILLED_COLOR: [string, string] = ['#e77cff', '#d93cfc'];
 
