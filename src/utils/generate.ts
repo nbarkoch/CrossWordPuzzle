@@ -109,40 +109,217 @@ const generateDecoyPattern = (word: string, random: () => number): string => {
   return result;
 };
 
+type PlacementCandidate = {
+  word: string;
+  normalizedWord: string;
+  position: Position;
+  direction: Direction;
+  score: number;
+};
+
+type WordCandidate = {
+  word: string;
+  normalizedWord: string;
+};
+
+const WORD_SAMPLE_SIZE = 50;
+const TARGET_OVERLAP_RATIO = 0.35;
+const MAX_COMFORTABLE_OVERLAP_RATIO = 0.55;
+
+const reverseWord = (word: string) => word.split('').reverse().join('');
+
+const getDirectionKey = (direction: Direction) =>
+  `${direction.dx},${direction.dy}`;
+
+const createDirectionCounts = () =>
+  Object.fromEntries(
+    VALID_DIRECTIONS.map(direction => [getDirectionKey(direction), 0]),
+  ) as Record<string, number>;
+
+const getPlayableWords = (
+  words: string[],
+  maxLength: number,
+): WordCandidate[] => {
+  const uniqueWords = new Map<string, string>();
+
+  words.forEach(word => {
+    const normalizedWord = normalizeWord(word);
+
+    if (normalizedWord.length > 1 && normalizedWord.length <= maxLength) {
+      uniqueWords.set(normalizedWord, word);
+    }
+  });
+
+  const candidates = [...uniqueWords.entries()].map(
+    ([normalizedWord, word]) => ({
+      word,
+      normalizedWord,
+    }),
+  );
+
+  return candidates.filter(
+    candidate =>
+      !candidates.some(other => {
+        if (other.normalizedWord === candidate.normalizedWord) {
+          return false;
+        }
+
+        return (
+          other.normalizedWord.includes(candidate.normalizedWord) ||
+          reverseWord(other.normalizedWord).includes(candidate.normalizedWord)
+        );
+      }),
+  );
+};
+
+const sampleWords = (
+  words: WordCandidate[],
+  random: () => number,
+  sampleSize: number,
+) => {
+  const pool = [...words];
+  const sample: WordCandidate[] = [];
+
+  while (pool.length > 0 && sample.length < sampleSize) {
+    const index = Math.floor(random() * pool.length);
+    sample.push(pool[index]);
+    pool.splice(index, 1);
+  }
+
+  return sample;
+};
+
+const shufflePlacedWordPairs = (
+  placedWords: string[],
+  normalizedPlacedWords: string[],
+  random: () => number,
+) => {
+  const wordPairs = placedWords.map((word, index) => ({
+    word,
+    normalizedWord: normalizedPlacedWords[index],
+  }));
+
+  for (let i = wordPairs.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [wordPairs[i], wordPairs[j]] = [wordPairs[j], wordPairs[i]];
+  }
+
+  return {
+    placedWords: wordPairs.map(pair => pair.word),
+    normalizedPlacedWords: wordPairs.map(pair => pair.normalizedWord),
+  };
+};
+
+const scorePlacement = (
+  grid: string[][],
+  word: string,
+  position: Position,
+  direction: Direction,
+  directionCounts: Record<string, number>,
+  placedWordCount: number,
+  random: () => number,
+) => {
+  let overlappingLetters = 0;
+  let emptyLetters = 0;
+
+  for (let i = 0; i < word.length; i++) {
+    const row = position.row + direction.dy * i;
+    const col = position.col + direction.dx * i;
+    const currentCell = grid[row][col];
+
+    if (currentCell === word[i]) {
+      overlappingLetters += 1;
+    } else {
+      emptyLetters += 1;
+    }
+  }
+
+  const directionCount = directionCounts[getDirectionKey(direction)] || 0;
+  const expectedDirectionCount =
+    (placedWordCount + 1) / VALID_DIRECTIONS.length;
+  const directionBalanceScore = (expectedDirectionCount - directionCount) * 250;
+  const overlapRatio = overlappingLetters / word.length;
+  const overlapScore =
+    Math.min(overlappingLetters, 3) * 500 +
+    Math.max(0, overlappingLetters - 3) * 120;
+  const fillScore = emptyLetters * 90;
+  const overlapBalancePenalty =
+    Math.abs(overlapRatio - TARGET_OVERLAP_RATIO) * 180;
+  const overCollisionPenalty =
+    overlapRatio > MAX_COMFORTABLE_OVERLAP_RATIO
+      ? (overlapRatio - MAX_COMFORTABLE_OVERLAP_RATIO) * 1200
+      : 0;
+
+  return (
+    overlapScore +
+    fillScore +
+    directionBalanceScore -
+    overlapBalancePenalty -
+    overCollisionPenalty +
+    random()
+  );
+};
+
 /**
- * Finds a valid placement for a word on the grid
+ * Finds the strongest valid placement from a sampled word set.
+ * The scoring favors matching-letter overlaps, then spread.
  * @param grid The current grid
- * @param word The word to place
+ * @param words Words to try
  * @param random Random function to use
- * @param maxAttempts Maximum placement attempts
  * @returns A valid position and direction, or null if placement fails
  */
 const findValidPlacement = (
   grid: string[][],
-  word: string,
+  words: WordCandidate[],
+  directionCounts: Record<string, number>,
+  placedWordCount: number,
   random: () => number,
-  maxAttempts: number = 1000,
-): {position: Position; direction: Direction} | null => {
+): PlacementCandidate | null => {
   const gridRows = grid.length;
   const gridCols = grid[0].length;
+  const candidates: PlacementCandidate[] = [];
 
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    // Pick position based on random function
-    const position = {
-      row: Math.floor(random() * gridRows),
-      col: Math.floor(random() * gridCols),
-    };
+  for (const wordCandidate of words) {
+    for (let row = 0; row < gridRows; row++) {
+      for (let col = 0; col < gridCols; col++) {
+        for (const direction of VALID_DIRECTIONS) {
+          const position = {row, col};
 
-    // Pick direction based on random function
-    const direction =
-      VALID_DIRECTIONS[Math.floor(random() * VALID_DIRECTIONS.length)];
-
-    if (canPlaceWord(grid, word, position, direction)) {
-      return {position, direction};
+          if (
+            canPlaceWord(
+              grid,
+              wordCandidate.normalizedWord,
+              position,
+              direction,
+            )
+          ) {
+            candidates.push({
+              word: wordCandidate.word,
+              normalizedWord: wordCandidate.normalizedWord,
+              position,
+              direction,
+              score: scorePlacement(
+                grid,
+                wordCandidate.normalizedWord,
+                position,
+                direction,
+                directionCounts,
+                placedWordCount,
+                random,
+              ),
+            });
+          }
+        }
+      }
     }
   }
 
-  return null;
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0];
 };
 
 /**
@@ -357,10 +534,7 @@ export const generateLetterGrid = (
     .fill('')
     .map(() => Array(gridCols).fill(''));
 
-  // Get unique words and filter by length
-  const validWords = [...new Set(words)].filter(
-    word => normalizeWord(word).length <= Math.min(gridRows, gridCols),
-  );
+  const validWords = getPlayableWords(words, Math.max(gridRows, gridCols));
 
   if (validWords.length === 0) {
     throw new Error('No valid words provided for the grid size');
@@ -384,9 +558,12 @@ export const generateLetterGrid = (
     shuffledWords.sort(() => random() - 0.5);
   }
 
-  const limitedShuffledWords = shuffledWords.slice(0, maxWords * 2);
+  const limitedShuffledWords = shuffledWords
+    .slice(0, maxWords * 4)
+    .sort((a, b) => b.normalizedWord.length - a.normalizedWord.length);
 
   const placedWords: string[] = [];
+  const directionCounts = createDirectionCounts();
   let remainingAttempts = limitedShuffledWords.length * 2;
 
   // Try to place words until we run out of attempts, words, or reach maxWords
@@ -395,18 +572,45 @@ export const generateLetterGrid = (
     limitedShuffledWords.length > 0 &&
     placedWords.length < maxWords
   ) {
-    const randomIndex = Math.floor(random() * limitedShuffledWords.length);
-    const word = limitedShuffledWords[randomIndex];
-    const normalizedWord = normalizeWord(word);
+    const sampledWords = sampleWords(
+      limitedShuffledWords,
+      random,
+      WORD_SAMPLE_SIZE,
+    );
 
-    const placement = findValidPlacement(grid, normalizedWord, random);
+    const placement = findValidPlacement(
+      grid,
+      sampledWords,
+      directionCounts,
+      placedWords.length,
+      random,
+    );
 
     if (placement) {
-      placeWord(grid, normalizedWord, placement.position, placement.direction);
-      placedWords.push(word);
-      limitedShuffledWords.splice(randomIndex, 1);
+      placeWord(
+        grid,
+        placement.normalizedWord,
+        placement.position,
+        placement.direction,
+      );
+      placedWords.push(placement.word);
+      directionCounts[getDirectionKey(placement.direction)] += 1;
+      const placedWordIndex = limitedShuffledWords.findIndex(
+        candidate => candidate.normalizedWord === placement.normalizedWord,
+      );
+
+      if (placedWordIndex >= 0) {
+        limitedShuffledWords.splice(placedWordIndex, 1);
+      }
+
       remainingAttempts = limitedShuffledWords.length * 2;
     } else {
+      const skippedWord = limitedShuffledWords.shift();
+
+      if (skippedWord) {
+        limitedShuffledWords.push(skippedWord);
+      }
+
       remainingAttempts--;
     }
   }
@@ -420,7 +624,13 @@ export const generateLetterGrid = (
   // Fill remaining spaces
   fillRemainingSpaces(grid, normalizedPlacedWords, gridRows, gridCols, random);
 
-  return {grid, placedWords, normalizedPlacedWords};
+  const shuffledPlacedWords = shufflePlacedWordPairs(
+    placedWords,
+    normalizedPlacedWords,
+    random,
+  );
+
+  return {grid, ...shuffledPlacedWords};
 };
 
 /**
