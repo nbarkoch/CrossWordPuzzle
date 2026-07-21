@@ -6,28 +6,18 @@
  */
 
 import React from 'react';
-import {I18nManager, StyleSheet, useColorScheme} from 'react-native';
+import {I18nManager, StyleSheet} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import AdBanner from '~/components/AdBanner';
 import Navigation from '~/screens/Navigation';
 
-const Colors = {
-  darker: '#000000',
-  lighter: '#ffffff',
-};
-
 function App(): React.ReactElement {
-  const isDarkMode = useColorScheme() === 'dark';
   I18nManager.allowRTL(false);
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-    flex: 1,
-  };
 
   return (
-    <SafeAreaProvider style={backgroundStyle}>
+    <SafeAreaProvider>
       <GestureHandlerRootView style={styles.sectionContainer}>
         <Navigation />
       </GestureHandlerRootView>

@@ -52,6 +52,6 @@ const styles = StyleSheet.create({
   safeAreaContainer: {
     height: '100%',
     width: '100%',
-    backgroundColor: '#994CFD',
+    backgroundColor: '#4A20A4',
   },
 });

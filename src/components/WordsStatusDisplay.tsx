@@ -2,7 +2,6 @@ import React from 'react';
 import Animated, {FadeInDown, SharedValue} from 'react-native-reanimated';
 import {FlatList, StyleSheet, Text, View, Dimensions} from 'react-native';
 import {WordSequence} from '~/utils/types';
-import LinearGradient from 'react-native-linear-gradient';
 import {normalizeWord} from '~/utils/generate';
 import {Banner} from './AdBanner';
 import StripeProgress from './StripeProgression';
@@ -47,27 +46,30 @@ const WordStatusDisplay = ({
           styles.wordBadge,
           item.isFound ? styles.foundBadge : styles.unfoundBadge,
         ]}>
-        <Text style={[styles.wordText, item.isFound && styles.foundText]}>
-          {item.word}
-        </Text>
+        <View style={styles.wordCard}>
+          <Text style={[styles.wordText, item.isFound && styles.foundText]}>
+            {item.word}
+          </Text>
+        </View>
       </Animated.View>
     );
   };
 
   return (
-    <LinearGradient
-      colors={['transparent', '#c568ff']}
-      style={styles.container}>
-      <View style={styles.progressContainer}>
+    <View style={styles.container}>
+      <View style={styles.progressShell}>
+        <View style={styles.wordCountContainer}>
+          <Text style={styles.wordCountText}>
+            {wordsFound}/{totalWords} WORDS
+          </Text>
+        </View>
         <StripeProgress
-          width={300}
-          height={30}
+          width={Math.min(250, width * 0.48)}
+          height={31}
           progress={progress}
           stripeWidth={5}
           compression={3}
           stripeSpeed={1500}
-          wordsFound={wordsFound}
-          totalWords={totalWords}
         />
       </View>
       <View style={styles.listContainer}>
@@ -80,51 +82,86 @@ const WordStatusDisplay = ({
           contentContainerStyle={styles.scrollContent}
         />
       </View>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 10,
-    paddingBottom: Banner.height + 20,
+    paddingTop: 4,
+    paddingBottom: Banner.height + 2,
     width: '100%',
   },
-  progressContainer: {
+  progressShell: {
+    width: width - 46,
+    minHeight: 46,
+    alignSelf: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 7,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginBottom: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.26)',
+    backgroundColor: 'rgba(105, 45, 203, 0.52)',
+  },
+  wordCountContainer: {
+    minWidth: 112,
+    paddingRight: 8,
+  },
+  wordCountText: {
+    color: '#FFFFFFf0',
+    fontWeight: '800',
+    fontSize: 14,
+    letterSpacing: 0,
   },
 
   listContainer: {
     width: width,
   },
   scrollContent: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingBottom: 5,
   },
   wordBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    margin: 5,
+    minWidth: 96,
+    padding: 1,
+    borderRadius: 22,
+    marginHorizontal: 6,
+    marginTop: 5,
+    marginBottom: 10,
+    shadowColor: '#9c6acb',
+    shadowOpacity: 0.2,
+    shadowOffset: {width: 0, height: 3},
+    shadowRadius: 5,
+    elevation: 5,
+    borderColor: '#6a2399',
+    borderWidth: 1,
+  },
+  wordCard: {
+    borderWidth: 1.5,
+    borderColor: '#b94fff2a',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 22,
+    alignItems: 'center',
   },
   unfoundBadge: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    backgroundColor: '#FFF8FF',
   },
   foundBadge: {
-    backgroundColor: '#f9d3ff',
-    borderWidth: 1,
-    borderColor: '#f9d3ff',
+    backgroundColor: '#FDDCF6',
   },
   wordText: {
-    fontSize: 16,
-    color: '#553F7Ed0',
-    fontWeight: '500',
+    fontSize: 15,
+    color: '#4A2C85',
+    fontWeight: '800',
+    letterSpacing: 0,
   },
   foundText: {
-    color: '#bf4fd1',
+    color: '#D843B7',
   },
 });
 

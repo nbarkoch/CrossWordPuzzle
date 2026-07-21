@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import {View, StyleSheet, Text, TextInput} from 'react-native';
+import {View, StyleSheet, TextInput} from 'react-native';
 import {Canvas, Path, Skia} from '@shopify/react-native-skia';
 import Animated, {
   useSharedValue,
@@ -21,8 +21,6 @@ interface StripeProgressProps {
   width: number;
   height: number;
   progress: SharedValue<number>;
-  wordsFound?: number;
-  totalWords?: number;
   stripeWidth?: number;
   stripeSpeed?: number;
   compression?: number;
@@ -72,8 +70,6 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
   width,
   height,
   progress,
-  wordsFound = 0,
-  totalWords = 0,
   stripeWidth = 10,
   stripeSpeed = 2000,
   compression = 2,
@@ -138,11 +134,6 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
             underlineColorAndroid="transparent"
           />
         </View>
-        <View style={styles.wordCountContainer}>
-          <Text style={styles.wordCountText}>
-            {wordsFound}/{totalWords} WORDS
-          </Text>
-        </View>
       </View>
     </View>
   );
@@ -152,24 +143,12 @@ const styles = StyleSheet.create({
   wrapper: {
     alignItems: 'center',
   },
-  wordCountContainer: {
-    position: 'absolute',
-    top: 0,
-    backgroundColor: '#9845d740',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  wordCountText: {
-    color: '#FFFFFFf0',
-    fontWeight: '700',
-    fontSize: 12,
-    letterSpacing: 1,
-  },
   container: {
     position: 'relative',
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.28)',
+    backgroundColor: 'rgba(91, 47, 168, 0.78)',
   },
   stripesContainer: {
     overflow: 'hidden',
@@ -183,7 +162,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: '100%',
     overflow: 'hidden',
-    backgroundColor: '#9845d7c0',
+    backgroundColor: '#7A48C9',
   },
   textContainer: {
     position: 'absolute',
@@ -196,7 +175,7 @@ const styles = StyleSheet.create({
   },
   text: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '900',
     textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.3)',

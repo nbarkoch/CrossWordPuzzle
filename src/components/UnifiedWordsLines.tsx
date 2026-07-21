@@ -157,14 +157,14 @@ const UnifiedWordsLines = React.memo(
             <Path
               path={path}
               style="stroke"
-              strokeWidth={blockSize}
+              strokeWidth={blockSize - 4}
               strokeCap="round"
               color={color}
             />
             <Path
               path={path}
               style="stroke"
-              strokeWidth={blockSize - 8}
+              strokeWidth={blockSize - 10}
               strokeCap="round"
               color={color}
             />

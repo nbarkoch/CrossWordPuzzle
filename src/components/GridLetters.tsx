@@ -169,7 +169,9 @@ export default function GridLetters({
   };
 
   return (
-    <LinearGradient style={styles.container} colors={['#994CFD', '#6F54FB']}>
+    <LinearGradient
+      style={styles.container}
+      colors={['#4B21A6', '#8043E9', '#783EE1', '#4B21A6']}>
       {isLoading ? (
         <LoadingFallback
           gridDimensions={loadingDimensions}

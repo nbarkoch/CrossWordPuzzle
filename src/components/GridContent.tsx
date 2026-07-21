@@ -431,7 +431,7 @@ export default function GridContent({
       <GestureDetector gesture={gesture}>
         <View
           style={[
-            styles.gridContainer,
+            styles.gridShadowContainer,
             {
               top: GRID_TOP,
               left: gridHorizontalPadding,
@@ -440,58 +440,65 @@ export default function GridContent({
               height: gridDimensions.height,
             },
           ]}>
-          <View style={styles.blocksContainer}>
-            {letterGrid.map((row, rowIndex) =>
-              row.map((_, colIndex) => {
-                const key = `${rowIndex}-${colIndex}`;
-                const blockStyle = {
-                  left: colIndex * blockSize,
-                  top: rowIndex * blockSize,
-                  backgroundColor: foundLetters[key] ? '#ccc' : '#E5E7EB',
-                  width: blockSize - 1,
-                  height: blockSize - 1,
-                };
-                return (
-                  <LinearGradient
-                    colors={[
-                      '#FFFFFF',
-                      '#FDFFF8',
-                      '#FDFFF8',
-                      '#FDFFF8',
-                      '#F8EEF7',
-                    ]}
-                    key={`${rowIndex}-${colIndex}`}
-                    style={[styles.block, blockStyle]}
+          <View style={styles.gridContainer}>
+            <View style={styles.blocksContainer}>
+              {letterGrid.map((row, rowIndex) =>
+                row.map((_, colIndex) => {
+                  const key = `${rowIndex}-${colIndex}`;
+                  const blockStyle = {
+                    left: colIndex * blockSize,
+                    top: rowIndex * blockSize,
+                    backgroundColor: foundLetters[key] ? '#ccc' : '#E5E7EB',
+                    width: blockSize - 1,
+                    height: blockSize - 1,
+                    borderRadius: 1,
+                  };
+                  return (
+                    <LinearGradient
+                      colors={[
+                        '#FBF8FE',
+                        '#F7F1F9',
+                        '#F7F1F9',
+                        '#F7F1F9',
+                        '#F7F1F9',
+                        '#F7F1F9',
+                        '#F7F1F9',
+                        '#F7F1F9',
+                        '#F1E7F9',
+                      ]}
+                      key={`${rowIndex}-${colIndex}`}
+                      style={[styles.block, blockStyle]}
+                    />
+                  );
+                }),
+              )}
+            </View>
+
+            {/* Replace both canvas layers with a single UnifiedWordsLines component */}
+            <View style={styles.canvasContainer}>
+              <UnifiedWordsLines
+                sequences={sequences}
+                blockSize={blockSize}
+                selectionPath={selectionPath}
+                activeIndex={selectedIndex}
+              />
+            </View>
+
+            {/* Letters layer on top */}
+            <View style={styles.lettersContainer}>
+              {letterGrid.map((row, rowIndex) =>
+                row.map((letter, colIndex) => (
+                  <LetterBlock
+                    key={`letter-${rowIndex}-${colIndex}`}
+                    letter={letter}
+                    row={rowIndex}
+                    col={colIndex}
+                    selectedBlocks={selectedBlocks}
+                    blockSize={blockSize}
                   />
-                );
-              }),
-            )}
-          </View>
-
-          {/* Replace both canvas layers with a single UnifiedWordsLines component */}
-          <View style={styles.canvasContainer}>
-            <UnifiedWordsLines
-              sequences={sequences}
-              blockSize={blockSize}
-              selectionPath={selectionPath}
-              activeIndex={selectedIndex}
-            />
-          </View>
-
-          {/* Letters layer on top */}
-          <View style={styles.lettersContainer}>
-            {letterGrid.map((row, rowIndex) =>
-              row.map((letter, colIndex) => (
-                <LetterBlock
-                  key={`letter-${rowIndex}-${colIndex}`}
-                  letter={letter}
-                  row={rowIndex}
-                  col={colIndex}
-                  selectedBlocks={selectedBlocks}
-                  blockSize={blockSize}
-                />
-              )),
-            )}
+                )),
+              )}
+            </View>
           </View>
         </View>
       </GestureDetector>
@@ -500,7 +507,11 @@ export default function GridContent({
       <View style={[styles.successAnimationContainer]}>
         <SuccessAnimation ref={successAnimationRef} blockSize={blockSize} />
       </View>
-      <View style={styles.bottomContainer}>
+      <View
+        style={[
+          styles.bottomContainer,
+          {top: GRID_TOP + gridDimensions.height + 14},
+        ]}>
         <WordStatusDisplay
           normalizedPlacedWords={normalizedPlacedWords}
           foundSequences={sequences}
@@ -523,14 +534,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  gridShadowContainer: {
+    position: 'absolute',
+    borderRadius: 16,
+    backgroundColor: '#F2E7FF',
+    shadowColor: '#2D126D',
+    shadowOpacity: 0.3,
+    shadowOffset: {width: 0, height: 6},
+    shadowRadius: 10,
+    elevation: 8,
+  },
   gridContainer: {
     ...StyleSheet.absoluteFill,
-    position: 'absolute',
     overflow: 'hidden',
-    borderRadius: 15,
+    borderRadius: 16,
     borderWidth: 1,
-    backgroundColor: '#C4A7EC',
-    borderColor: '#C4A7EC',
+    backgroundColor: '#E0D2F3',
+    borderColor: '#E0D2F3',
   },
   blocksContainer: {
     ...StyleSheet.absoluteFill,
@@ -562,6 +582,7 @@ const styles = StyleSheet.create({
 
   bottomContainer: {
     position: 'absolute',
-    bottom: 0,
+    left: 0,
+    right: 0,
   },
 });

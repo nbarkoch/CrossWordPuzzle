@@ -9,10 +9,10 @@ import Animated, {
 import {Canvas, Group, Path} from '@shopify/react-native-skia';
 import {GridSize} from '~/utils/types';
 import {scheduleOnRN} from 'react-native-worklets';
+import LinearGradient from 'react-native-linear-gradient';
 
 const homeIconPath =
-  'M10.679 24.4854H17.4407V15.9541C17.4407 15.4151 17.0891 15.0635 16.5501 15.0635H11.5813C11.0305 15.0635 10.679 15.4151 10.679 15.9541V24.4854ZM6.09693 25.6924H21.9524C23.6165 25.6924 24.5891 24.7432 24.5891 23.1026V10.1533L22.7024 8.86426V22.6221C22.7024 23.3838 22.2923 23.8057 21.554 23.8057H6.49537C5.74537 23.8057 5.33521 23.3838 5.33521 22.6221V8.87598L3.44849 10.1533V23.1026C3.44849 24.7432 4.42115 25.6924 6.09693 25.6924ZM0.0734863 12.6494C0.0734863 13.1299 0.448486 13.5869 1.0813 13.5869C1.40943 13.5869 1.67896 13.4112 1.92505 13.2119L13.6555 3.36817C13.9133 3.13379 14.2297 3.13379 14.4876 3.36817L26.218 13.2119C26.4524 13.4112 26.7219 13.5869 27.0501 13.5869C27.6008 13.5869 28.0462 13.2471 28.0462 12.6846C28.0462 12.333 27.929 12.0987 27.6829 11.8877L15.4837 1.63379C14.6165 0.895508 13.5383 0.895508 12.6594 1.63379L0.448486 11.8877C0.190674 12.0987 0.0734863 12.3799 0.0734863 12.6494ZM21.6477 7.36426L24.5891 9.84863V4.43457C24.5891 3.91895 24.261 3.59082 23.7454 3.59082H22.4915C21.9876 3.59082 21.6477 3.91895 21.6477 4.43457V7.36426Z';
-
+  'M3.65 14.35L14.95 4.45C15.55 3.92 16.45 3.92 17.05 4.45L28.35 14.35C29.15 15.05 28.65 16.35 27.58 16.35H25.15V26.15C25.15 27.17 24.32 28 23.3 28H19.25V21.95C19.25 21.32 18.73 20.8 18.1 20.8H13.9C13.27 20.8 12.75 21.32 12.75 21.95V28H8.7C7.68 28 6.85 27.17 6.85 26.15V16.35H4.42C3.35 16.35 2.85 15.05 3.65 14.35Z';
 type WordDisplayProps = {
   word: SharedValue<string>;
   mode: string;
@@ -20,6 +20,8 @@ type WordDisplayProps = {
   size: GridSize;
   onGoHome: () => void;
 };
+
+const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 
 const GameHeader: React.FC<WordDisplayProps> = ({
   word,
@@ -40,124 +42,139 @@ const GameHeader: React.FC<WordDisplayProps> = ({
   const hasWord = displayWord.length > 0;
 
   return (
-    <Animated.View
-      key={hasWord ? 'word-header' : 'info-header'}
-      style={[
-        styles.headerContainer,
-        hasWord ? styles.wordHeader : styles.infoHeader,
-      ]}
-      entering={FadeIn.duration(120)}
-      exiting={FadeOut.duration(90)}
-      layout={LinearTransition.springify()
-        .mass(0.3)
-        .damping(12)
-        .stiffness(100)}>
-      {hasWord ? (
-        <View style={styles.wordContainer}>
-          <Text style={styles.wordText}>{displayWord}</Text>
-        </View>
-      ) : (
-        <View style={styles.headerContentContainer}>
-          <TouchableOpacity
-            onPress={onGoHome}
-            style={styles.homeButton}
-            activeOpacity={0.7}>
-            <Canvas style={styles.canvas}>
-              <Group transform={[{scale: 0.9}]} color={'#ffffffc0'}>
-                <Path path={homeIconPath} style="fill" />
-              </Group>
-            </Canvas>
-          </TouchableOpacity>
-          <View style={styles.gameInfoContainer}>
-            <View style={styles.badge}>
-              <Text style={styles.categoryText}>{mode}</Text>
-            </View>
-            <View style={styles.separator} />
-            <View style={styles.badge}>
-              <Text style={styles.categoryText}>{category}</Text>
-            </View>
-            <View style={styles.separator} />
-            <View style={styles.badge}>
-              <Text style={styles.sizeText}>{size}</Text>
+    <View style={styles.headerWrapper}>
+      <AnimatedLinearGradient
+        key={hasWord ? 'word-header' : 'info-header'}
+        style={[
+          styles.headerContainer,
+          hasWord ? styles.wordHeader : styles.infoHeader,
+        ]}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 0}}
+        colors={
+          hasWord
+            ? ['#8925b453', '#953be396', '#8925b453']
+            : ['#8c3be396', '#4925b400', '#4925b400']
+        }
+        entering={FadeIn.duration(120)}
+        exiting={FadeOut.duration(90)}
+        layout={LinearTransition.springify()
+          .mass(0.3)
+          .damping(12)
+          .stiffness(100)}>
+        {hasWord ? (
+          <View style={styles.wordContainer}>
+            <Text style={styles.wordText}>{displayWord}</Text>
+          </View>
+        ) : (
+          <View style={styles.headerContentContainer}>
+            <TouchableOpacity
+              onPress={onGoHome}
+              style={styles.homeButton}
+              activeOpacity={0.7}>
+              <Canvas style={styles.canvas}>
+                <Group transform={[{scale: 0.9}]} color={'#ffffff'}>
+                  <Path path={homeIconPath} style="fill" />
+                </Group>
+              </Canvas>
+            </TouchableOpacity>
+            <View style={styles.gameInfoContainer}>
+              <View style={styles.badge}>
+                <Text style={styles.categoryText}>{mode}</Text>
+              </View>
+              <View style={styles.separator} />
+              <View style={styles.badge}>
+                <Text style={styles.categoryText}>{category}</Text>
+              </View>
+              <View style={styles.separator} />
+              <View style={styles.badge}>
+                <Text style={styles.sizeText}>{size}</Text>
+              </View>
             </View>
           </View>
-        </View>
-      )}
-    </Animated.View>
+        )}
+      </AnimatedLinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  headerContainer: {
+  headerWrapper: {
+    borderWidth: 1,
+    borderColor: '#9d46e9bc',
     position: 'absolute',
     top: 5,
     left: 10,
     right: 10,
-    borderRadius: 15,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
     zIndex: 10,
-    shadowOffset: {width: 0, height: 2},
-    shadowRadius: 3.84,
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  headerContainer: {
+    padding: 5,
   },
   infoHeader: {
-    backgroundColor: 'rgba(231, 124, 255, 0.35)',
+    backgroundColor: '#ba52ff31',
   },
-  wordHeader: {
-    backgroundColor: 'rgba(39, 39, 39, 0.35)',
-  },
+  wordHeader: {},
   headerContentContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   homeButton: {
-    width: 32,
-    height: 32,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: '#B96EFA',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
   },
   canvas: {
-    width: 25,
-    height: 25,
+    width: 30,
+    height: 30,
   },
   gameInfoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    paddingLeft: 8,
-    paddingRight: 3,
-    paddingVertical: 3,
-    height: 32,
+    backgroundColor: '#8147d7',
+    borderRadius: 18,
+    paddingLeft: 4,
+    paddingRight: 4,
+    paddingVertical: 4,
+    height: 44,
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    justifyContent: 'center',
+    minWidth: 72,
+    height: 36,
+    paddingHorizontal: 10,
     paddingVertical: 2,
+    borderRadius: 16,
   },
   separator: {
     width: 1,
-    height: '60%',
+    height: '58%',
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginHorizontal: 6,
+    marginHorizontal: 4,
   },
   categoryEmoji: {
     fontSize: 13,
     marginRight: 4,
   },
   categoryText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '800',
     color: 'rgba(255, 255, 255, 0.89)',
     textTransform: 'capitalize',
   },
   sizeText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '800',
     color: 'rgba(255, 255, 255, 0.89)',
     textTransform: 'capitalize',
   },

@@ -4,6 +4,10 @@ import {BLOCK_SIZES, GRID_BOTTOM, GRID_HORIZONTAL} from './consts';
 
 const {width, height} = Dimensions.get('screen');
 
+const SCREEN_WIDTH = width;
+const SCREEN_HEIGHT = height;
+export {SCREEN_WIDTH, SCREEN_HEIGHT};
+
 const calculateGridConfig = (blockSize: number) => ({
   rows: Math.floor((height - GRID_BOTTOM) / blockSize),
   cols: Math.floor((width - GRID_HORIZONTAL) / blockSize),
@@ -59,15 +63,15 @@ export const isDirectionValid = (
     direction.dx > 0
       ? gridCols - 1 - start.col
       : direction.dx < 0
-      ? start.col
-      : Infinity;
+        ? start.col
+        : Infinity;
 
   const maxStepsY =
     direction.dy > 0
       ? gridRows - 1 - start.row
       : direction.dy < 0
-      ? start.row
-      : Infinity;
+        ? start.row
+        : Infinity;
 
   const maxSteps = Math.min(Math.abs(maxStepsX), Math.abs(maxStepsY));
 
@@ -88,15 +92,15 @@ export const updateSelectedBlocks = (
     direction.dx > 0
       ? gridCols - 1 - start.col
       : direction.dx < 0
-      ? start.col
-      : Infinity;
+        ? start.col
+        : Infinity;
 
   const maxStepsY =
     direction.dy > 0
       ? gridRows - 1 - start.row
       : direction.dy < 0
-      ? start.row
-      : Infinity;
+        ? start.row
+        : Infinity;
 
   const maxSteps = Math.min(Math.abs(maxStepsX), Math.abs(maxStepsY));
   const requestedSteps = Math.max(
