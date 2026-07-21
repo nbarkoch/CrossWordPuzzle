@@ -5,7 +5,6 @@ import {
   withSpring,
   withTiming,
   Easing,
-  runOnJS,
 } from 'react-native-reanimated';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import {StyleSheet, View} from 'react-native';
@@ -33,6 +32,7 @@ import UnifiedWordsLines from './UnifiedWordsLines';
 import EndGameDialog from './dialogs/GameEndDialog';
 import GameHeader from './GameHeader';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {runOnJS} from 'react-native-worklets';
 
 type GridConfig = {
   gridRows: number;
@@ -80,8 +80,8 @@ export default function GridContent({
   const resetEnabled = mode === 'classic';
   const gridDimensions = useMemo(
     () => ({
-      width: gridCols * blockSize,
-      height: gridRows * blockSize,
+      width: gridCols * blockSize + 1,
+      height: gridRows * blockSize + 1,
     }),
     [gridCols, gridRows, blockSize],
   );
@@ -435,6 +435,7 @@ export default function GridContent({
             {
               top: GRID_TOP,
               left: gridHorizontalPadding,
+              right: gridHorizontalPadding,
               width: gridDimensions.width,
               height: gridDimensions.height,
             },
@@ -444,7 +445,7 @@ export default function GridContent({
               row.map((_, colIndex) => {
                 const key = `${rowIndex}-${colIndex}`;
                 const blockStyle = {
-                  right: colIndex * blockSize,
+                  left: colIndex * blockSize,
                   top: rowIndex * blockSize,
                   backgroundColor: foundLetters[key] ? '#ccc' : '#E5E7EB',
                   width: blockSize - 1,
