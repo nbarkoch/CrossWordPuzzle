@@ -3,8 +3,8 @@ import Animated, {FadeInDown, SharedValue} from 'react-native-reanimated';
 import {FlatList, StyleSheet, Text, View, Dimensions} from 'react-native';
 import {WordSequence} from '~/utils/types';
 import {normalizeWord} from '~/utils/generate';
-import {Banner} from './AdBanner';
 import StripeProgress from './StripeProgression';
+import LinearGradient from 'react-native-linear-gradient';
 
 const {width} = Dimensions.get('window');
 
@@ -58,19 +58,25 @@ const WordStatusDisplay = ({
   return (
     <View style={styles.container}>
       <View style={styles.progressShell}>
-        <View style={styles.wordCountContainer}>
-          <Text style={styles.wordCountText}>
-            {wordsFound}/{totalWords} WORDS
-          </Text>
-        </View>
-        <StripeProgress
-          width={Math.min(250, width * 0.48)}
-          height={31}
-          progress={progress}
-          stripeWidth={6}
-          compression={2.5}
-          stripeSpeed={1500}
-        />
+        <LinearGradient
+          style={styles.progressGradient}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 0}}
+          colors={['#8443df', '#683cd5']}>
+          <View style={styles.wordCountContainer}>
+            <Text style={styles.wordCountText}>
+              {wordsFound}/{totalWords} WORDS
+            </Text>
+          </View>
+          <StripeProgress
+            width={Math.min(250, width * 0.48)}
+            height={30}
+            progress={progress}
+            stripeWidth={6}
+            compression={2.5}
+            stripeSpeed={1500}
+          />
+        </LinearGradient>
       </View>
       <View style={styles.listContainer}>
         <FlatList
@@ -88,24 +94,29 @@ const WordStatusDisplay = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 4,
-    paddingBottom: Banner.height + 2,
+    flex: 1,
     width: '100%',
   },
   progressShell: {
     width: width - 46,
     minHeight: 46,
     alignSelf: 'center',
+    marginBottom: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#A070E1',
+    backgroundColor: 'rgb(106, 45, 203)',
+    elevation: 3,
+    shadowColor: '#000',
+    overflow: 'hidden',
+  },
+  progressGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 14,
+    paddingStart: 20,
+    paddingEnd: 10,
     paddingVertical: 6,
-    marginBottom: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.26)',
-    backgroundColor: 'rgba(105, 45, 203, 0.52)',
   },
   wordCountContainer: {
     minWidth: 112,
@@ -120,18 +131,17 @@ const styles = StyleSheet.create({
 
   listContainer: {
     width: width,
+    flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 12,
-    paddingBottom: 5,
+    alignItems: 'center',
+    gap: 10,
   },
   wordBadge: {
     minWidth: 96,
     padding: 1,
     borderRadius: 22,
-    marginHorizontal: 6,
-    marginTop: 5,
-    marginBottom: 10,
     shadowColor: '#9c6acb',
     shadowOpacity: 0.2,
     shadowOffset: {width: 0, height: 3},

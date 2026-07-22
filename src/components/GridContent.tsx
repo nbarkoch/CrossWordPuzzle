@@ -26,13 +26,13 @@ import {
 } from '~/utils/blockCalcs';
 import {GRID_TOP, INITIAL_DIRECTION, SEQUENCE_COLORS} from '~/utils/consts';
 import WordStatusDisplay from './WordsStatusDisplay';
-import LinearGradient from 'react-native-linear-gradient';
 import SuccessAnimation, {SuccessAnimationRef} from './SuccessAnimation';
 import UnifiedWordsLines from './UnifiedWordsLines';
 import EndGameDialog from './dialogs/GameEndDialog';
 import GameHeader from './GameHeader';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {runOnJS} from 'react-native-worklets';
+import {Banner} from './AdBanner';
 
 type GridConfig = {
   gridRows: number;
@@ -444,28 +444,24 @@ export default function GridContent({
             <View style={styles.blocksContainer}>
               {letterGrid.map((row, rowIndex) =>
                 row.map((_, colIndex) => {
-                  const key = `${rowIndex}-${colIndex}`;
                   const blockStyle = {
                     left: colIndex * blockSize,
                     top: rowIndex * blockSize,
-                    backgroundColor: foundLetters[key] ? '#ccc' : '#E5E7EB',
+                    backgroundColor: '#F7F1F9',
+                    borderTopWidth: 2,
+                    borderBottomWidth: 1,
+                    borderTopColor: '#FBF8FE',
+                    borderBottomColor: '#EEE3F9',
+                    borderLeftWidth: 1,
+                    borderRightWidth: 1,
+                    borderLeftColor: '#FBF8FE',
+                    borderRightColor: '#EEE3F9',
                     width: blockSize - 1,
                     height: blockSize - 1,
-                    borderRadius: 1,
+                    borderRadius: 1.5,
                   };
                   return (
-                    <LinearGradient
-                      colors={[
-                        '#FBF8FE',
-                        '#F7F1F9',
-                        '#F7F1F9',
-                        '#F7F1F9',
-                        '#F7F1F9',
-                        '#F7F1F9',
-                        '#F7F1F9',
-                        '#F7F1F9',
-                        '#F1E7F9',
-                      ]}
+                    <View
                       key={`${rowIndex}-${colIndex}`}
                       style={[styles.block, blockStyle]}
                     />
@@ -549,8 +545,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 16,
     borderWidth: 1,
-    backgroundColor: '#E0D2F3',
-    borderColor: '#E0D2F3',
+    backgroundColor: '#DCCCF2',
+    borderColor: '#DCCCF2',
   },
   blocksContainer: {
     ...StyleSheet.absoluteFill,
@@ -584,5 +580,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
+    bottom: Banner.height,
   },
 });

@@ -143,9 +143,12 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
   });
 
   return (
-    <View style={styles.wrapper}>
-      <View
-        style={[styles.container, {width, height, borderRadius: height / 2}]}>
+    <View
+      style={[
+        styles.wrapper,
+        {width: width + 4.5, height: height + 4.5, borderRadius: height},
+      ]}>
+      <View style={[styles.container, {width, height, borderRadius: height}]}>
         <Animated.View style={[styles.progressFill, progressFillStyle]}>
           <Canvas style={{width, height}}>
             <Rect x={0} y={0} width={width} height={height}>
@@ -180,14 +183,18 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
 
 const styles = StyleSheet.create({
   wrapper: {
+    borderWidth: 1,
+    borderColor: '#cbabeec0',
+    backgroundColor: '#a273d4d0',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   container: {
     position: 'relative',
     overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.28)',
-    backgroundColor: 'rgba(91, 47, 168, 0.78)',
+    borderWidth: 1,
+    borderColor: '#a374d6e1',
+    backgroundColor: '#6640b2',
   },
   progressFill: {
     position: 'absolute',

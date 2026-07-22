@@ -6,7 +6,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const {width} = Dimensions.get('screen');
 
-export const Banner = {width: 320, height: 30};
+export const Banner = {width: 320, height: 50};
 interface AdBannerProps {}
 
 const AdBanner = ({}: AdBannerProps) => {
@@ -16,7 +16,7 @@ const AdBanner = ({}: AdBannerProps) => {
     : 'ca-app-pub-3655197897637289/5393134387';
 
   return (
-    <View style={[styles.banner, {height: Math.max(bottom, 50)}]}>
+    <View style={[styles.banner, {height: Math.max(bottom, Banner.height)}]}>
       <BannerAd
         unitId={adUnitId}
         size={BannerAdSize.BANNER}
