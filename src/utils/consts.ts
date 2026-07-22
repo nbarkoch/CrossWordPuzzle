@@ -60,9 +60,16 @@ export const CATEGORIES_ICONS: Record<CategorySelection, string> = {
 const GRID_HORIZONTAL = 10;
 const GRID_TOP = 80;
 const GRID_BOTTOM = 270;
+const GRID_FRAME_PADDING = 5;
 const INITIAL_DIRECTION = VALID_DIRECTIONS[0];
 
-export {GRID_HORIZONTAL, GRID_TOP, GRID_BOTTOM, INITIAL_DIRECTION};
+export {
+  GRID_HORIZONTAL,
+  GRID_TOP,
+  GRID_BOTTOM,
+  GRID_FRAME_PADDING,
+  INITIAL_DIRECTION,
+};
 
 const MIN_TAP_SIZE = Platform.select({
   ios: 52,

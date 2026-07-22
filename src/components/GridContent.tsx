@@ -24,7 +24,12 @@ import {
   isValidWord,
   updateSelectedBlocks,
 } from '~/utils/blockCalcs';
-import {GRID_TOP, INITIAL_DIRECTION, SEQUENCE_COLORS} from '~/utils/consts';
+import {
+  GRID_FRAME_PADDING,
+  GRID_TOP,
+  INITIAL_DIRECTION,
+  SEQUENCE_COLORS,
+} from '~/utils/consts';
 import WordStatusDisplay from './WordsStatusDisplay';
 import SuccessAnimation, {SuccessAnimationRef} from './SuccessAnimation';
 import UnifiedWordsLines from './UnifiedWordsLines';
@@ -440,6 +445,7 @@ export default function GridContent({
               height: gridDimensions.height,
             },
           ]}>
+          <View style={styles.gridFrame} />
           <View style={styles.gridContainer}>
             <View style={styles.blocksContainer}>
               {letterGrid.map((row, rowIndex) =>
@@ -532,21 +538,32 @@ const styles = StyleSheet.create({
   },
   gridShadowContainer: {
     position: 'absolute',
-    borderRadius: 16,
-    backgroundColor: '#F2E7FF',
     shadowColor: '#2D126D',
     shadowOpacity: 0.3,
     shadowOffset: {width: 0, height: 6},
     shadowRadius: 10,
     elevation: 8,
   },
+  gridFrame: {
+    ...StyleSheet.absoluteFill,
+    margin: -GRID_FRAME_PADDING,
+    backgroundColor: '#DECCF8',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#B99DEF',
+  },
   gridContainer: {
     ...StyleSheet.absoluteFill,
     overflow: 'hidden',
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    backgroundColor: '#DCCCF2',
-    borderColor: '#DCCCF2',
+    backgroundColor: '#d4c4ea',
+    borderColor: '#cdb8eb',
+    shadowColor: '#410747',
+    shadowOpacity: 0.3,
+    shadowOffset: {width: 0, height: 6},
+    shadowRadius: 10,
+    elevation: 5,
   },
   blocksContainer: {
     ...StyleSheet.absoluteFill,
@@ -565,6 +582,8 @@ const styles = StyleSheet.create({
   },
   block: {
     position: 'absolute',
+
+    overflow: 'hidden',
   },
   successAnimationContainer: {
     position: 'absolute',

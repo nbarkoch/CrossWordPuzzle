@@ -6,7 +6,7 @@ import LoadingAnimation from './LoadingAnimation';
 import {Banner} from './AdBanner';
 import {CategorySelection, GameMode, GridSize} from '~/utils/types';
 import {GRID_DIMENSIONS} from '~/utils/blockCalcs';
-import {BLOCK_SIZES, GRID_TOP} from '~/utils/consts';
+import {BLOCK_SIZES, GRID_FRAME_PADDING, GRID_TOP} from '~/utils/consts';
 import {wordsDictionary} from '~/data/english';
 
 const GridContent = React.lazy(() => import('./GridContent'));
@@ -43,6 +43,7 @@ const LoadingFallback = ({
           height: gridDimensions.height,
         },
       ]}>
+      <View style={styles.gridFrame} />
       <LoadingAnimation />
     </View>
   );
@@ -221,11 +222,18 @@ const styles = StyleSheet.create({
   gridContainer: {
     ...StyleSheet.absoluteFill,
     position: 'absolute',
-    overflow: 'hidden',
     borderRadius: 15,
     borderWidth: 1,
-    backgroundColor: '#C4A7EC',
-    borderColor: '#C4A7EC',
+    backgroundColor: '#d4c4ea',
+    borderColor: '#cdb8eb',
+  },
+  gridFrame: {
+    ...StyleSheet.absoluteFill,
+    margin: -GRID_FRAME_PADDING,
+    backgroundColor: '#DECCF8',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#B99DEF',
   },
   errorContainer: {
     position: 'absolute',
