@@ -38,6 +38,7 @@ import GameHeader from './GameHeader';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {runOnJS} from 'react-native-worklets';
 import {Banner} from './AdBanner';
+import LinearGradient from 'react-native-linear-gradient';
 
 type GridConfig = {
   gridRows: number;
@@ -469,8 +470,15 @@ export default function GridContent({
                   return (
                     <View
                       key={`${rowIndex}-${colIndex}`}
-                      style={[styles.block, blockStyle]}
-                    />
+                      style={[styles.block, blockStyle]}>
+                      <LinearGradient
+                        style={{
+                          width: blockSize - 2,
+                          height: blockSize - 2,
+                        }}
+                        colors={['#F7EEFB', '#FBF6FD', '#F6EFFB']}
+                      />
+                    </View>
                   );
                 }),
               )}
