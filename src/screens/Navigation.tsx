@@ -7,6 +7,7 @@ import GameOptions from './GameOptions';
 import Leaderboard from './Leaderboard';
 import MainMenu from './MainMenu';
 import Settings from './Settings';
+import WordWave from './WordWave';
 import {CategorySelection, GameMode, GridSize} from '~/utils/types';
 import {StyleSheet, View} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -23,6 +24,7 @@ export type RootStackParamList = {
     mode: GameMode;
   };
   Leaderboard: undefined;
+  WordWave: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -42,6 +44,7 @@ export default function Navigation() {
           <Stack.Screen name="Settings" component={Settings} />
           <Stack.Screen name="GameOptions" component={GameOptions} />
           <Stack.Screen name="Leaderboard" component={Leaderboard} />
+          <Stack.Screen name="WordWave" component={WordWave} />
         </Stack.Navigator>
       </NavigationContainer>
     </View>

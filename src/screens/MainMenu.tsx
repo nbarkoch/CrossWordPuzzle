@@ -31,6 +31,10 @@ const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
         });
         break;
       }
+      case 'challenge': {
+        navigation.navigate('WordWave');
+        break;
+      }
       default: {
         break;
       }
@@ -87,7 +91,7 @@ const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
               colors={['#8B5CF6', '#7C3AED']}
               style={styles.modeGradient}>
               <Text style={styles.modeTitle}>Word Wave</Text>
-              <Text style={styles.modeDescription}>Race against the clock</Text>
+              <Text style={styles.modeDescription}>Find falling word sets</Text>
             </LinearGradient>
           </Pressable>
         </View>
