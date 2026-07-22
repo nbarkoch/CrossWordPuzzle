@@ -44,7 +44,11 @@ export default function Navigation() {
           <Stack.Screen name="Settings" component={Settings} />
           <Stack.Screen name="GameOptions" component={GameOptions} />
           <Stack.Screen name="Leaderboard" component={Leaderboard} />
-          <Stack.Screen name="WordWave" component={WordWave} />
+          <Stack.Screen
+            name="WordWave"
+            component={WordWave}
+            options={{gestureEnabled: false}}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </View>

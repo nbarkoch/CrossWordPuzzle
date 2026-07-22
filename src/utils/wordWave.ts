@@ -2,6 +2,7 @@ import {wordsDictionary} from '~/data/english';
 
 export const WORD_WAVE_SIZE = 7;
 export const WORD_WAVE_MIN_WORD_LENGTH = 3;
+const WORD_WAVE_PLANNED_MIN_WORD_LENGTH = 4;
 
 export type WordWaveTile = {
   id: string;
@@ -472,6 +473,27 @@ export const findWordWaveMoves = (
   return moves.sort((a, b) => a.word.localeCompare(b.word));
 };
 
+export const getWordWaveMoveScore = (move: WordWaveMove) => {
+  const diagonalBonus = isDiagonalDirection(move.direction) ? 180 : 0;
+  const deepBonus = move.path.some(position => position.row >= 3) ? 140 : 0;
+  const centerBonus = getMoveCenterScore(move) * 90;
+  const areaBonus = getMoveAreaScore(move) * 28;
+  const topBandPenalty = isTopBandMove(move) ? 220 : 0;
+  const edgePenalty = touchesEdge(move) ? 55 : 0;
+  const shortPenalty = move.word.length <= 3 ? 260 : 0;
+
+  return (
+    move.word.length * move.word.length * 120 +
+    diagonalBonus +
+    deepBonus +
+    centerBonus +
+    areaBonus -
+    topBandPenalty -
+    edgePenalty -
+    shortPenalty
+  );
+};
+
 const getUniqueMovesByWord = (moves: WordWaveMove[]) => {
   const usedWords = new Set<string>();
 
@@ -665,7 +687,7 @@ const scoreWordWaveBoard = (
     uniqueWords * 10 +
     longWords * 24 +
     veryLongWords * 34 +
-    lengthDepthScore * 18 +
+    lengthDepthScore * 34 +
     diagonalMoves * 24 +
     innerMoves * 12 +
     deepFreshMoves * 36 +
@@ -676,20 +698,21 @@ const scoreWordWaveBoard = (
     locationBucketCount * 28 +
     centralityScore * 18 +
     averageLength * 18 -
-    shortWords * 18 -
-    edgeWords * 10 -
-    easyWords * 34 -
-    topBandMoves * 18 -
-    topBandHorizontalMoves * 72 -
+    shortWords * 220 -
+    edgeWords * 16 -
+    easyWords * 84 -
+    topBandMoves * 54 -
+    topBandHorizontalMoves * 170 -
     freshDominatedMoves * 44 -
     freshAxisMoves * 28 -
-    sameClearedLaneMoves * 52 -
+    sameClearedLaneMoves * 260 -
     repeatedCellPenalty * 16 -
     diagonalBalancePenalty -
     axisOnlyPenalty;
 
   return {
     moves,
+    usesRefillContext: Boolean(context?.freshPositions?.size),
     uniqueWords,
     longWords,
     veryLongWords,
@@ -737,11 +760,14 @@ const summarizeBoard = (board: WordWaveBoard) => {
 const isBoardQualityPlayable = (quality: ReturnType<typeof scoreWordWaveBoard>) =>
   quality.uniqueWords >= 10 &&
   quality.longWords >= 3 &&
+  quality.veryLongWords >= 1 &&
   quality.diagonalMoves >= 2 &&
   quality.innerMoves >= 5 &&
+  (!quality.usesRefillContext || quality.mixedMoves >= 1) &&
   quality.directionCount >= 4 &&
   quality.locationBucketCount >= 6 &&
-  quality.easyWords <= Math.ceil(quality.uniqueWords * 0.45) &&
+  quality.shortWords <= Math.ceil(quality.uniqueWords * 0.38) &&
+  quality.easyWords <= Math.ceil(quality.uniqueWords * 0.32) &&
   quality.topBandHorizontalMoves <= Math.max(1, Math.floor(quality.uniqueWords * 0.18)) &&
   quality.freshDominatedMoves <= Math.max(2, Math.floor(quality.uniqueWords * 0.25)) &&
   quality.freshAxisMoves <= Math.max(3, Math.floor(quality.uniqueWords * 0.35)) &&
@@ -871,7 +897,7 @@ const getInjectionOptionScore = (
   const verticalBonus = isVerticalDirection(direction) ? 70 : 0;
   const topBandPenalty = isTopBandMove(move) ? 220 : 0;
   const horizontalPenalty = isHorizontalDirection(direction) ? 120 : 0;
-  const sameLanePenalty = isSameClearedLaneMove(move, context) ? 180 : 0;
+  const sameLanePenalty = isSameClearedLaneMove(move, context) ? 700 : 0;
   const shortPenalty = option.word.length <= 3 ? 90 : 0;
   const areaScore = getMoveAreaScore(move);
 
@@ -896,13 +922,33 @@ const getSmartInjectionOptions = (
   limit = 96,
 ) => {
   const options: WordWaveInjectionOption[] = [];
+  const getMatchingWordsForPath = (path: WordWavePosition[], length: number) => {
+    const matches: string[] = [];
+
+    for (const word of WORDS_BY_LENGTH.get(length) ?? []) {
+      if (
+        path.every((position, index) => {
+          const tile = slots[position.row][position.col];
+          return !tile || tile.letter === word[index];
+        })
+      ) {
+        matches.push(word);
+
+        if (matches.length >= 8) {
+          break;
+        }
+      }
+    }
+
+    return matches;
+  };
 
   for (let row = 0; row < WORD_WAVE_SIZE; row += 1) {
     for (let col = 0; col < WORD_WAVE_SIZE; col += 1) {
       for (const direction of WORD_WAVE_DIRECTIONS) {
         for (
           let length = WORD_WAVE_SIZE;
-          length >= WORD_WAVE_MIN_WORD_LENGTH;
+          length >= WORD_WAVE_PLANNED_MIN_WORD_LENGTH;
           length -= 1
         ) {
           const path = getPathForWordPlacement(row, col, direction, 'A'.repeat(length));
@@ -923,14 +969,7 @@ const getSmartInjectionOptions = (
             continue;
           }
 
-          const matchingWords = (WORDS_BY_LENGTH.get(length) ?? [])
-            .filter(word =>
-              path.every((position, index) => {
-                const tile = slots[position.row][position.col];
-                return !tile || tile.letter === word[index];
-              }),
-            )
-            .slice(0, 8);
+          const matchingWords = getMatchingWordsForPath(path, length);
 
           matchingWords.forEach(word => {
             const option = {word, path};
@@ -1047,9 +1086,10 @@ const getStaticRefillForecastScore = (candidate: ScoredWordWaveCandidate) => {
   const coveragePenalty = Math.max(0, 5 - rowCoverage) * 190 +
     Math.max(0, 5 - colCoverage) * 190;
   const topHeavyPenalty = topHeavyMoves * 120;
-  const sameLanePenalty = candidate.quality.sameClearedLaneMoves * 360;
+  const sameLanePenalty = candidate.quality.sameClearedLaneMoves * 1250;
   const topHorizontalPenalty = candidate.quality.topBandHorizontalMoves * 240;
   const freshDominatedPenalty = candidate.quality.freshDominatedMoves * 150;
+  const shortWordPenalty = candidate.quality.shortWords * 260;
   const diagonalPenalty = Math.abs(diagonalRatio - 0.45) * 500;
 
   return (
@@ -1070,18 +1110,34 @@ const getStaticRefillForecastScore = (candidate: ScoredWordWaveCandidate) => {
     sameLanePenalty -
     topHorizontalPenalty -
     freshDominatedPenalty -
+    shortWordPenalty -
     diagonalPenalty
   );
 };
 
 const selectBestRefillCandidate = (
   candidates: ScoredWordWaveCandidate[],
-) =>
-  candidates.reduce((best, candidate) =>
+) => {
+  const spreadCandidates = candidates.filter(candidate => {
+    const uniqueWords = Math.max(1, candidate.quality.uniqueWords);
+
+    return (
+      candidate.quality.sameClearedLaneMoves <=
+        Math.max(3, Math.floor(uniqueWords * 0.24)) &&
+      candidate.quality.shortWords <= Math.max(3, Math.floor(uniqueWords * 0.4)) &&
+      candidate.quality.topBandHorizontalMoves <=
+        Math.max(2, Math.floor(uniqueWords * 0.2))
+    );
+  });
+  const candidatesToScore =
+    spreadCandidates.length > 0 ? spreadCandidates : candidates;
+
+  return candidatesToScore.reduce((best, candidate) =>
     getStaticRefillForecastScore(candidate) > getStaticRefillForecastScore(best)
       ? candidate
       : best,
   );
+};
 
 export const refillWordWaveBoard = (
   board: WordWaveBoard,

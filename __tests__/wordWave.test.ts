@@ -3,6 +3,7 @@ import {
   findWordWaveMoves,
   getMoveForPath,
   getWordFromPath,
+  getWordWaveDictionary,
   getWordWaveSelectionPath,
   refillWordWaveBoard,
   searchWordWaveSurvivalCandidate,
@@ -109,6 +110,15 @@ it('finds only straight selectable word wave moves', () => {
   });
 });
 
+it('uses an expanded word wave dictionary with many longer words', () => {
+  const dictionary = getWordWaveDictionary();
+
+  expect(dictionary.length).toBeGreaterThan(1400);
+  expect(dictionary.filter(word => word.length >= 5).length).toBeGreaterThan(900);
+  expect(dictionary.filter(word => word.length === 7).length).toBeGreaterThan(200);
+  expect(dictionary).toEqual(expect.arrayContaining(['BETTER', 'QUALITY', 'WORKING']));
+});
+
 it('generates varied boards with diagonal and longer words', () => {
   const board = createWordWaveBoard();
   const moves = findWordWaveMoves(board);
@@ -156,8 +166,18 @@ it('does not refill most next words into the same obvious cleared lane', () => {
     );
   });
   const topBandHorizontalMoves = uniqueMoves.filter(isTopBandHorizontal);
+  const shortMoves = uniqueMoves.filter(candidate => candidate.word.length <= 3);
+  const longDeepMoves = uniqueMoves.filter(
+    candidate =>
+      candidate.word.length >= 5 &&
+      candidate.path.some(position => position.row >= 3),
+  );
 
   expect(uniqueMoves.length).toBeGreaterThanOrEqual(8);
+  expect(shortMoves.length).toBeLessThanOrEqual(
+    Math.max(3, Math.floor(uniqueMoves.length * 0.42)),
+  );
+  expect(longDeepMoves.length).toBeGreaterThanOrEqual(2);
   expect(freshDominatedMoves.length).toBeLessThanOrEqual(
     Math.max(3, Math.floor(uniqueMoves.length * 0.35)),
   );
@@ -176,11 +196,7 @@ it('does not refill most next words into the same obvious cleared lane', () => {
     ),
   ).toBe(true);
   expect(
-    uniqueMoves.some(
-      candidate =>
-        candidate.word.length >= 5 &&
-        candidate.path.some(position => position.row >= 3),
-    ),
+    longDeepMoves.length > 0,
   ).toBe(true);
   expect(
     uniqueMoves.some(candidate =>

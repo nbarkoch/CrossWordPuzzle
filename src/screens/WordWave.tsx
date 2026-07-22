@@ -23,6 +23,7 @@ import {
   findWordWaveMoves,
   getMoveForPath,
   getWordFromPath,
+  getWordWaveMoveScore,
   getWordWaveSelectionPath,
   pathContainsPosition,
   refillWordWaveBoard,
@@ -135,14 +136,21 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   const visibleWords = useMemo(() => {
     const usedWords = new Set<string>();
 
-    return moves.filter(move => {
-      if (usedWords.has(move.word)) {
-        return false;
-      }
+    return moves
+      .filter(move => {
+        if (usedWords.has(move.word)) {
+          return false;
+        }
 
-      usedWords.add(move.word);
-      return true;
-    });
+        usedWords.add(move.word);
+        return true;
+      })
+      .sort(
+        (a, b) =>
+          getWordWaveMoveScore(b) - getWordWaveMoveScore(a) ||
+          b.word.length - a.word.length ||
+          a.word.localeCompare(b.word),
+      );
   }, [moves]);
   const renderedTiles = useMemo(
     () =>
