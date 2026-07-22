@@ -41,29 +41,23 @@ const SuccessAnimation = forwardRef<SuccessAnimationRef, Props>(
     const offsetX = useSharedValue(0);
     const offsetY = useSharedValue(0);
 
-    React.useImperativeHandle(
-      ref,
-      () => {
-        const play: SuccessAnimationRef['play'] = (blocks, color, x, y) => {
-          positions.value = blocks;
-          activeColor.value = color;
-          offsetX.value = x;
-          offsetY.value = y;
+    React.useImperativeHandle(ref, () => {
+      const play: SuccessAnimationRef['play'] = (blocks, color, x, y) => {
+        positions.value = blocks;
+        activeColor.value = color;
+        offsetX.value = x;
+        offsetY.value = y;
 
-          scale.value = withSequence(
-            withTiming(0, {duration: 0}),
-            withSpring(1, {mass: 0.5, damping: 12, stiffness: 90}),
-          );
+        scale.value = withSequence(
+          withTiming(0, {duration: 0}),
+          withSpring(1, {mass: 0.5, damping: 12, stiffness: 90}),
+        );
 
-          opacity.value = withSequence(
-            withTiming(1, {duration: 100}),
-            withTiming(0, {duration: 300}),
-          );
-        };
-        return {play};
-      },
-      [positions, scale, opacity, activeColor, offsetX, offsetY],
-    );
+        opacity.value = 1;
+        opacity.value = withTiming(0, {duration: 1000});
+      };
+      return {play};
+    }, [positions, scale, opacity, activeColor, offsetX, offsetY]);
 
     const path = useDerivedValue(() => {
       const $path = Skia.Path.Make();
@@ -97,7 +91,7 @@ const SuccessAnimation = forwardRef<SuccessAnimationRef, Props>(
     });
 
     const innerStrokeWidth = useDerivedValue(() => {
-      return blockSize * (0.9 + scale.value * 0.65);
+      return blockSize * (0.9 + scale.value * 0.9);
     });
 
     const outerColor = useDerivedValue(() => {
