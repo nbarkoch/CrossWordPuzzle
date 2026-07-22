@@ -1,16 +1,14 @@
-import React, {Suspense, useEffect, useState, useCallback} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {StyleSheet, View, TouchableOpacity, Text} from 'react-native';
 import {generateLetterGrid} from '~/utils/generate';
 import LinearGradient from 'react-native-linear-gradient';
 import LoadingAnimation from './LoadingAnimation';
+import GridContent from './GridContent';
 import {Banner} from './AdBanner';
 import {CategorySelection, GameMode, GridSize} from '~/utils/types';
 import {GRID_DIMENSIONS} from '~/utils/blockCalcs';
 import {BLOCK_SIZES, GRID_FRAME_PADDING, GRID_TOP} from '~/utils/consts';
 import {wordsDictionary} from '~/data/english';
-
-const loadGridContent = () => import('./GridContent');
-const GridContent = React.lazy(loadGridContent);
 
 type GridConfig = {
   gridRows: number;
@@ -93,7 +91,6 @@ export default function GridLetters({
     let isMounted = true;
     setIsLoading(true);
     setError(null);
-    loadGridContent();
 
     // Schedule the heavy computation to run after the next frame
     const generateGridAsync = () => {
@@ -192,25 +189,17 @@ export default function GridLetters({
           </View>
         </View>
       ) : (
-        <Suspense
-          fallback={
-            <LoadingFallback
-              gridDimensions={loadingDimensions}
-              gridHorizontalPadding={preDimensions.gridHorizontalPadding}
-            />
-          }>
-          {hasValidGrid && (
-            <GridContent
-              gridData={gridData}
-              blockSize={blockSize}
-              onGoHome={goToMenu}
-              onGameReset={resetGame}
-              gridSize={gridSize}
-              category={category}
-              mode={mode}
-            />
-          )}
-        </Suspense>
+        hasValidGrid && (
+          <GridContent
+            gridData={gridData}
+            blockSize={blockSize}
+            onGoHome={goToMenu}
+            onGameReset={resetGame}
+            gridSize={gridSize}
+            category={category}
+            mode={mode}
+          />
+        )
       )}
     </LinearGradient>
   );
