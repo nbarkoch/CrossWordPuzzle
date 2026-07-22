@@ -2,15 +2,13 @@ import {Dimensions} from 'react-native';
 import {Direction, Position, WordSequence} from './types';
 import {BLOCK_SIZES, GRID_BOTTOM, GRID_HORIZONTAL} from './consts';
 
-const {width, height} = Dimensions.get('screen');
+const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('screen');
 
-const SCREEN_WIDTH = width;
-const SCREEN_HEIGHT = height;
 export {SCREEN_WIDTH, SCREEN_HEIGHT};
 
 const calculateGridConfig = (blockSize: number) => ({
-  rows: Math.floor((height - GRID_BOTTOM) / blockSize),
-  cols: Math.floor((width - GRID_HORIZONTAL) / blockSize),
+  rows: Math.floor((SCREEN_HEIGHT - GRID_BOTTOM) / blockSize),
+  cols: Math.floor((SCREEN_WIDTH - GRID_HORIZONTAL) / blockSize),
   blockSize,
 });
 
@@ -21,15 +19,15 @@ export const GRID_SIZES = {
 };
 
 const preDimensions = (blockSize: number) => {
-  const gridRows = Math.floor((height - GRID_BOTTOM) / blockSize);
-  const gridCols = Math.floor((width - GRID_HORIZONTAL) / blockSize);
+  const gridRows = Math.floor((SCREEN_HEIGHT - GRID_BOTTOM) / blockSize);
+  const gridCols = Math.floor((SCREEN_WIDTH - GRID_HORIZONTAL) / blockSize);
   const gridWidth = gridCols * blockSize;
   const gridHeight = gridRows * blockSize;
 
   return {
     gridRows,
     gridCols,
-    gridHorizontalPadding: (width - gridWidth) / 2,
+    gridHorizontalPadding: (SCREEN_WIDTH - gridWidth) / 2,
     width: gridWidth,
     height: gridHeight,
   };
