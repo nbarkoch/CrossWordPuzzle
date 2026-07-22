@@ -59,6 +59,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'white',
+    borderRadius: 15,
   },
   loadingBox: {
     top: 10,

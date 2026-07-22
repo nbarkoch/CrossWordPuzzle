@@ -1,6 +1,6 @@
 import {SharedValue, useAnimatedReaction} from 'react-native-reanimated';
 import React from 'react';
-import {StyleSheet, Text, View, TouchableOpacity} from 'react-native';
+import {StyleSheet, Text, View, Pressable} from 'react-native';
 import Animated, {
   FadeIn,
   FadeOut,
@@ -68,16 +68,18 @@ const GameHeader: React.FC<WordDisplayProps> = ({
           </View>
         ) : (
           <View style={styles.headerContentContainer}>
-            <TouchableOpacity
+            <Pressable
               onPress={onGoHome}
-              style={styles.homeButton}
-              activeOpacity={0.7}>
+              style={({pressed}) => [
+                styles.homeButton,
+                {transform: [{scale: pressed ? 0.95 : 1}]},
+              ]}>
               <Canvas style={styles.canvas}>
                 <Group transform={[{scale: 0.9}]} color={'#ffffff'}>
                   <Path path={homeIconPath} style="fill" />
                 </Group>
               </Canvas>
-            </TouchableOpacity>
+            </Pressable>
             <View style={styles.gameInfoContainer}>
               <View style={styles.badge}>
                 <Text style={styles.categoryText}>{mode}</Text>
@@ -127,10 +129,15 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 22,
+    borderRadius: 20,
     borderWidth: 2,
     borderColor: '#B96EFA',
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    backgroundColor: '#A44DF6',
+    shadowColor: '#410747',
+    shadowOpacity: 0.3,
+    shadowOffset: {width: 0, height: 6},
+    shadowRadius: 10,
+    elevation: 5,
   },
   canvas: {
     width: 30,

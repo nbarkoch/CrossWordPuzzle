@@ -538,11 +538,6 @@ const styles = StyleSheet.create({
   },
   gridShadowContainer: {
     position: 'absolute',
-    shadowColor: '#2D126D',
-    shadowOpacity: 0.3,
-    shadowOffset: {width: 0, height: 6},
-    shadowRadius: 10,
-    elevation: 8,
   },
   gridFrame: {
     ...StyleSheet.absoluteFill,
@@ -551,6 +546,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#B99DEF',
+    shadowColor: '#2D126D',
+    shadowOpacity: 0.3,
+    shadowOffset: {width: 0, height: 6},
+    shadowRadius: 10,
+    elevation: 8,
   },
   gridContainer: {
     ...StyleSheet.absoluteFill,
@@ -559,11 +559,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: '#d4c4ea',
     borderColor: '#cdb8eb',
-    shadowColor: '#410747',
+    shadowColor: '#74127f',
     shadowOpacity: 0.3,
     shadowOffset: {width: 0, height: 6},
     shadowRadius: 10,
-    elevation: 5,
+    elevation: 2,
   },
   blocksContainer: {
     ...StyleSheet.absoluteFill,
@@ -582,7 +582,6 @@ const styles = StyleSheet.create({
   },
   block: {
     position: 'absolute',
-
     overflow: 'hidden',
   },
   successAnimationContainer: {

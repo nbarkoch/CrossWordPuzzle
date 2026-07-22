@@ -35,7 +35,7 @@ const LoadingFallback = ({
   return (
     <View
       style={[
-        styles.gridContainer,
+        styles.gridShadowContainer,
         {
           top: GRID_TOP,
           left: gridHorizontalPadding,
@@ -44,7 +44,9 @@ const LoadingFallback = ({
         },
       ]}>
       <View style={styles.gridFrame} />
-      <LoadingAnimation />
+      <View style={styles.gridContainer}>
+        <LoadingAnimation />
+      </View>
     </View>
   );
 };
@@ -219,13 +221,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: Banner.height,
   },
-  gridContainer: {
-    ...StyleSheet.absoluteFill,
+  gridShadowContainer: {
     position: 'absolute',
-    borderRadius: 15,
-    borderWidth: 1,
-    backgroundColor: '#d4c4ea',
-    borderColor: '#cdb8eb',
   },
   gridFrame: {
     ...StyleSheet.absoluteFill,
@@ -234,6 +231,25 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#B99DEF',
+
+    shadowColor: '#2D126D',
+    shadowOpacity: 0.3,
+    shadowOffset: {width: 0, height: 6},
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  gridContainer: {
+    ...StyleSheet.absoluteFill,
+    overflow: 'hidden',
+    borderRadius: 18,
+    borderWidth: 1,
+    backgroundColor: '#d4c4ea',
+    borderColor: '#cdb8eb',
+    shadowColor: '#410747',
+    shadowOpacity: 0.3,
+    shadowOffset: {width: 0, height: 6},
+    shadowRadius: 10,
+    elevation: 5,
   },
   errorContainer: {
     position: 'absolute',
