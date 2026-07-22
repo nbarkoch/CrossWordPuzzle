@@ -9,7 +9,8 @@ import {GRID_DIMENSIONS} from '~/utils/blockCalcs';
 import {BLOCK_SIZES, GRID_FRAME_PADDING, GRID_TOP} from '~/utils/consts';
 import {wordsDictionary} from '~/data/english';
 
-const GridContent = React.lazy(() => import('./GridContent'));
+const loadGridContent = () => import('./GridContent');
+const GridContent = React.lazy(loadGridContent);
 
 type GridConfig = {
   gridRows: number;
@@ -92,6 +93,7 @@ export default function GridLetters({
     let isMounted = true;
     setIsLoading(true);
     setError(null);
+    loadGridContent();
 
     // Schedule the heavy computation to run after the next frame
     const generateGridAsync = () => {

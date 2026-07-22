@@ -125,6 +125,7 @@ type WordCandidate = {
 const WORD_SAMPLE_SIZE = 50;
 const TARGET_OVERLAP_RATIO = 0.35;
 const MAX_COMFORTABLE_OVERLAP_RATIO = 0.55;
+const playableWordsCache = new WeakMap<string[], Map<number, WordCandidate[]>>();
 
 const reverseWord = (word: string) => word.split('').reverse().join('');
 
@@ -140,6 +141,13 @@ const getPlayableWords = (
   words: string[],
   maxLength: number,
 ): WordCandidate[] => {
+  const cachedByLength = playableWordsCache.get(words);
+  const cachedWords = cachedByLength?.get(maxLength);
+
+  if (cachedWords) {
+    return cachedWords;
+  }
+
   const uniqueWords = new Map<string, string>();
 
   words.forEach(word => {
@@ -157,7 +165,7 @@ const getPlayableWords = (
     }),
   );
 
-  return candidates.filter(
+  const playableWords = candidates.filter(
     candidate =>
       !candidates.some(other => {
         if (other.normalizedWord === candidate.normalizedWord) {
@@ -170,6 +178,14 @@ const getPlayableWords = (
         );
       }),
   );
+
+  if (cachedByLength) {
+    cachedByLength.set(maxLength, playableWords);
+  } else {
+    playableWordsCache.set(words, new Map([[maxLength, playableWords]]));
+  }
+
+  return playableWords;
 };
 
 const sampleWords = (
@@ -277,12 +293,35 @@ const findValidPlacement = (
 ): PlacementCandidate | null => {
   const gridRows = grid.length;
   const gridCols = grid[0].length;
-  const candidates: PlacementCandidate[] = [];
+  let bestCandidate: PlacementCandidate | null = null;
 
   for (const wordCandidate of words) {
-    for (let row = 0; row < gridRows; row++) {
-      for (let col = 0; col < gridCols; col++) {
-        for (const direction of VALID_DIRECTIONS) {
+    const wordLength = wordCandidate.normalizedWord.length;
+
+    for (const direction of VALID_DIRECTIONS) {
+      const minRow =
+        direction.dy < 0 ? wordLength - 1 : direction.dy > 0 ? 0 : 0;
+      const maxRow =
+        direction.dy > 0
+          ? gridRows - wordLength
+          : direction.dy < 0
+            ? gridRows - 1
+            : gridRows - 1;
+      const minCol =
+        direction.dx < 0 ? wordLength - 1 : direction.dx > 0 ? 0 : 0;
+      const maxCol =
+        direction.dx > 0
+          ? gridCols - wordLength
+          : direction.dx < 0
+            ? gridCols - 1
+            : gridCols - 1;
+
+      if (minRow > maxRow || minCol > maxCol) {
+        continue;
+      }
+
+      for (let row = minRow; row <= maxRow; row++) {
+        for (let col = minCol; col <= maxCol; col++) {
           const position = {row, col};
 
           if (
@@ -293,7 +332,7 @@ const findValidPlacement = (
               direction,
             )
           ) {
-            candidates.push({
+            const candidate = {
               word: wordCandidate.word,
               normalizedWord: wordCandidate.normalizedWord,
               position,
@@ -307,19 +346,18 @@ const findValidPlacement = (
                 placedWordCount,
                 random,
               ),
-            });
+            };
+
+            if (!bestCandidate || candidate.score > bestCandidate.score) {
+              bestCandidate = candidate;
+            }
           }
         }
       }
     }
   }
 
-  if (candidates.length === 0) {
-    return null;
-  }
-
-  candidates.sort((a, b) => b.score - a.score);
-  return candidates[0];
+  return bestCandidate;
 };
 
 /**
