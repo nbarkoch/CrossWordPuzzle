@@ -60,7 +60,7 @@ export const CATEGORIES_ICONS: Record<CategorySelection, string> = {
 const GRID_HORIZONTAL = 10;
 const GRID_TOP = 80;
 const GRID_BOTTOM = 270;
-const GRID_FRAME_PADDING = 5;
+const GRID_FRAME_PADDING = 7;
 const INITIAL_DIRECTION = VALID_DIRECTIONS[0];
 
 export {

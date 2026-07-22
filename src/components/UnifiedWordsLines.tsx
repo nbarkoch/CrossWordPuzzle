@@ -36,18 +36,53 @@ const UnifiedWordsLines = React.memo(
     const lastValidPath = useSharedValue<SkPath>(Skia.Path.Make());
     const isExiting = useSharedValue(false);
     const exitingColorIndex = useSharedValue(0);
+    const renderedSequenceCount = useSharedValue(sequences.length);
+    const pendingSavedPathHandoff = useSharedValue(false);
+
+    React.useLayoutEffect(() => {
+      renderedSequenceCount.value = sequences.length;
+    }, [renderedSequenceCount, sequences.length]);
+
+    const hideActivePath = () => {
+      'worklet';
+      pendingSavedPathHandoff.value = false;
+      isExiting.value = false;
+      pathScale.value = 0;
+      pathOpacity.value = 0;
+    };
+
+    const holdActivePathUntilSavedPathRenders = (
+      targetSequenceCount: number,
+    ) => {
+      'worklet';
+      isExiting.value = false;
+      pendingSavedPathHandoff.value = true;
+      pathScale.value = 1;
+      pathOpacity.value = 1;
+
+      if (renderedSequenceCount.value >= targetSequenceCount) {
+        hideActivePath();
+      }
+    };
 
     // Monitor selectionPath for changes
     useAnimatedReaction(
       () => {
         // Check if the path is empty or not
-        return !selectionPath.value.isEmpty();
+        return {
+          hasPath: !selectionPath.value.isEmpty(),
+          sequenceCount: sequences.length,
+        };
       },
-      (hasPath, prevHasPath) => {
+      (selectionState, prevSelectionState) => {
+        const hasPath = selectionState.hasPath;
+        const prevHasPath = prevSelectionState?.hasPath;
+
         if (hasPath !== prevHasPath) {
           if (hasPath) {
             // Path appeared - spring in
             isExiting.value = false;
+            pendingSavedPathHandoff.value = false;
             pathScale.value = withSpring(1, {
               mass: 0.5,
               damping: 12,
@@ -62,6 +97,17 @@ const UnifiedWordsLines = React.memo(
             // Store a copy of the current path for potential exit animation
             lastValidPath.value = selectionPath.value.copy();
           } else {
+            const createdSavedPath =
+              prevSelectionState !== null &&
+              selectionState.sequenceCount > prevSelectionState.sequenceCount;
+
+            if (createdSavedPath) {
+              holdActivePathUntilSavedPathRenders(
+                selectionState.sequenceCount,
+              );
+              return;
+            }
+
             // Path disappeared - mark as exiting and store current color index
             isExiting.value = true;
             exitingColorIndex.value =
@@ -86,7 +132,28 @@ const UnifiedWordsLines = React.memo(
           lastValidPath.value = selectionPath.value.copy();
         }
       },
-      [selectionPath, sequences.length, colorIndex],
+      [
+        selectionPath,
+        sequences.length,
+        colorIndex,
+        pendingSavedPathHandoff,
+        renderedSequenceCount,
+      ],
+    );
+
+    // Complete the saved-line handoff after React commits the new sequence.
+    useAnimatedReaction(
+      () => renderedSequenceCount.value,
+      (sequenceCount, prevSequenceCount) => {
+        if (
+          pendingSavedPathHandoff.value &&
+          prevSequenceCount !== null &&
+          sequenceCount > prevSequenceCount
+        ) {
+          hideActivePath();
+        }
+      },
+      [renderedSequenceCount, pendingSavedPathHandoff],
     );
 
     useAnimatedReaction(

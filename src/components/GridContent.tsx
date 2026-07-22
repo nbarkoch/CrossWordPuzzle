@@ -554,11 +554,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#B99DEF',
-    shadowColor: '#2D126D',
+    shadowColor: '#000000',
     shadowOpacity: 0.3,
     shadowOffset: {width: 0, height: 6},
     shadowRadius: 10,
-    elevation: 8,
+    elevation: 10,
   },
   gridContainer: {
     ...StyleSheet.absoluteFill,
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowOffset: {width: 0, height: 6},
     shadowRadius: 10,
-    elevation: 2,
+    elevation: 3,
   },
   blocksContainer: {
     ...StyleSheet.absoluteFill,
