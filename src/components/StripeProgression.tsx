@@ -1,6 +1,13 @@
 import React, {useEffect} from 'react';
 import {View, StyleSheet, TextInput} from 'react-native';
-import {Canvas, Path, Skia} from '@shopify/react-native-skia';
+import {
+  Canvas,
+  LinearGradient as SkiaLinearGradient,
+  Path,
+  Rect,
+  Skia,
+  vec,
+} from '@shopify/react-native-skia';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -14,7 +21,13 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 
-const FILLED_COLOR: [string, string] = ['#e77cff', '#d93cfc'];
+const FILL_GRADIENT_COLORS = ['#E383FC', '#D668FD', '#C54AFC'];
+const LIGHT_STRIPE_GRADIENT_COLORS = ['#FF91FF52', '#EA55FF3D', '#B233EF34'];
+const DARK_STRIPE_GRADIENT_COLORS = ['#ed51f542', '#b836e055', '#ac1ddb4a'];
+const STRIPE_GRADIENT_COLORS: [string[], string[]] = [
+  LIGHT_STRIPE_GRADIENT_COLORS,
+  DARK_STRIPE_GRADIENT_COLORS,
+];
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
 interface StripeProgressProps {
@@ -47,11 +60,15 @@ const createStripeElements = (
   height: number,
   stripeWidth: number,
   compression: number,
-  colors: [string, string],
+  colors: [string[], string[]],
 ) => {
   const stripes: React.ReactElement[] = [];
 
-  for (let i = -stripeWidth; i < width + compression; i += stripeWidth) {
+  for (
+    let i = -stripeWidth, stripeIndex = 0;
+    i < width + compression;
+    i += stripeWidth, stripeIndex += 1
+  ) {
     const path = Skia.Path.Make();
     path.moveTo(i, height);
     path.lineTo(i + stripeWidth, height);
@@ -60,7 +77,13 @@ const createStripeElements = (
     path.close();
 
     stripes.push(
-      <Path key={i} path={path} color={i % 2 === 0 ? colors[0] : colors[1]} />,
+      <Path key={i} path={path}>
+        <SkiaLinearGradient
+          start={vec(i, 0)}
+          end={vec(i, height)}
+          colors={colors[stripeIndex % 2]}
+        />
+      </Path>,
     );
   }
   return stripes;
@@ -76,16 +99,18 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
 }) => {
   const offsetX = useSharedValue(0);
   const displayText = useDerivedValue(() => `${Math.round(progress.value)}%`);
+  const stripeTravelDistance = stripeWidth * 4;
+  const stripeCanvasWidth = width + stripeTravelDistance * 2;
 
   const filledStripes = React.useMemo(() => {
     return createStripeElements(
-      width,
+      stripeCanvasWidth,
       height,
       stripeWidth,
       compression,
-      FILLED_COLOR,
+      STRIPE_GRADIENT_COLORS,
     );
-  }, [width, height, stripeWidth, compression]);
+  }, [stripeCanvasWidth, height, stripeWidth, compression]);
 
   const animatedTextProps = useAnimatedProps(() => ({
     text: displayText.value,
@@ -100,14 +125,20 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
   const animatedStyle = useAnimatedStyle(() => {
     'worklet';
     return {
-      transform: [{translateX: offsetX.value}, {scaleX: 2}],
+      transform: [
+        {translateX: offsetX.value - stripeTravelDistance},
+        {scaleX: 2},
+      ],
     };
   });
 
-  const maskStyle = useAnimatedStyle(() => {
+  const progressFillStyle = useAnimatedStyle(() => {
     'worklet';
+    const progressWidth = interpolate(progress.value, [0, 100], [0, width]);
+
     return {
-      left: interpolate(progress.value, [0, 100], [0, width]),
+      width: progressWidth,
+      borderRadius: Math.min(height / 2, progressWidth / 2),
     };
   });
 
@@ -115,15 +146,23 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
     <View style={styles.wrapper}>
       <View
         style={[styles.container, {width, height, borderRadius: height / 2}]}>
-        {/* Filled stripes as base layer */}
-        <View style={styles.stripesContainer}>
-          <Animated.View style={animatedStyle}>
-            <Canvas style={{width, height}}>{filledStripes}</Canvas>
-          </Animated.View>
-        </View>
+        <Animated.View style={[styles.progressFill, progressFillStyle]}>
+          <Canvas style={{width, height}}>
+            <Rect x={0} y={0} width={width} height={height}>
+              <SkiaLinearGradient
+                start={vec(0, 0)}
+                end={vec(0, height)}
+                colors={FILL_GRADIENT_COLORS}
+              />
+            </Rect>
+          </Canvas>
 
-        {/* Empty stripes as mask layer */}
-        <Animated.View style={[styles.progressMask, maskStyle]} />
+          <Animated.View style={[styles.stripesLayer, animatedStyle]}>
+            <Canvas style={{width: stripeCanvasWidth, height}}>
+              {filledStripes}
+            </Canvas>
+          </Animated.View>
+        </Animated.View>
 
         <View style={styles.textContainer}>
           <AnimatedTextInput
@@ -150,19 +189,17 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.28)',
     backgroundColor: 'rgba(91, 47, 168, 0.78)',
   },
-  stripesContainer: {
-    overflow: 'hidden',
-    width: '100%',
-    height: '100%',
-  },
-  progressMask: {
+  progressFill: {
     position: 'absolute',
     top: 0,
-    bottom: 0,
-    right: 0,
-    height: '100%',
+    left: 0,
     overflow: 'hidden',
-    backgroundColor: '#7A48C9',
+    height: '100%',
+  },
+  stripesLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
   textContainer: {
     position: 'absolute',

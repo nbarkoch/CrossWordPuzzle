@@ -67,8 +67,8 @@ const WordStatusDisplay = ({
           width={Math.min(250, width * 0.48)}
           height={31}
           progress={progress}
-          stripeWidth={5}
-          compression={3}
+          stripeWidth={6}
+          compression={2.5}
           stripeSpeed={1500}
         />
       </View>
