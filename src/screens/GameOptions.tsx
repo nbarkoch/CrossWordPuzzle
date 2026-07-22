@@ -26,6 +26,7 @@ import {
 import {Banner} from '~/components/AdBanner';
 import {CATEGORIES_ICONS} from '~/utils/consts';
 import {RouteProp, useRoute} from '@react-navigation/native';
+import {prepareGrid} from '~/utils/gridGenerationCache';
 
 const {width} = Dimensions.get('window');
 const ITEM_SPACING = 10;
@@ -87,6 +88,12 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
   const [selectedCategory, setSelectedCategory] =
     useState<CategorySelection | null>(null);
   const [selectedSize, setSelectedSize] = useState<GridSize | null>(null);
+
+  React.useEffect(() => {
+    if (selectedCategory && selectedSize) {
+      prepareGrid({category: selectedCategory, gridSize: selectedSize, mode});
+    }
+  }, [mode, selectedCategory, selectedSize]);
 
   function onStart(params: {
     category: CategorySelection;

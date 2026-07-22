@@ -1,6 +1,5 @@
 import React, {useEffect, useState, useCallback} from 'react';
 import {StyleSheet, View, TouchableOpacity, Text} from 'react-native';
-import {generateLetterGrid} from '~/utils/generate';
 import LinearGradient from 'react-native-linear-gradient';
 import LoadingAnimation from './LoadingAnimation';
 import GridContent from './GridContent';
@@ -8,16 +7,14 @@ import {Banner} from './AdBanner';
 import {CategorySelection, GameMode, GridSize} from '~/utils/types';
 import {GRID_DIMENSIONS} from '~/utils/blockCalcs';
 import {BLOCK_SIZES, GRID_FRAME_PADDING, GRID_TOP} from '~/utils/consts';
-import {wordsDictionary} from '~/data/english';
+import {
+  GeneratedGridConfig,
+  generateGridOnIdle,
+  prepareGrid,
+  takePreparedGrid,
+} from '~/utils/gridGenerationCache';
 
-type GridConfig = {
-  gridRows: number;
-  gridCols: number;
-  letterGrid: string[][];
-  placedWords: string[];
-  normalizedPlacedWords: string[];
-  gridHorizontalPadding: number;
-};
+type GridConfig = GeneratedGridConfig;
 
 interface LoadingProps {
   gridDimensions: {
@@ -50,7 +47,6 @@ const LoadingFallback = ({
   );
 };
 
-// Initial empty grid configuration
 const initialGridData: GridConfig = {
   gridRows: 0,
   gridCols: 0,
@@ -92,79 +88,34 @@ export default function GridLetters({
     setIsLoading(true);
     setError(null);
 
-    // Schedule the heavy computation to run after the next frame
-    const generateGridAsync = () => {
-      // Use requestAnimationFrame to schedule work after rendering
-      requestAnimationFrame(() => {
-        try {
-          const {gridRows, gridCols, gridHorizontalPadding} = preDimensions;
+    const gridRequest = {category, gridSize, mode};
+    const preparedGrid = gameKey === 0 ? takePreparedGrid(gridRequest) : null;
+    const gridPromise = preparedGrid
+      ? Promise.resolve(preparedGrid)
+      : gameKey === 0
+        ? prepareGrid(gridRequest)
+        : generateGridOnIdle(gridRequest);
 
-          // Move the heavy computation to a promise to avoid blocking
-          const gridGenerationPromise = new Promise<{
-            grid: string[][];
-            placedWords: string[];
-            normalizedPlacedWords: string[];
-          }>(resolve => {
-            try {
-              const result = generateLetterGrid(
-                gridCols,
-                gridRows,
-                wordsDictionary[category],
-                mode === 'daily',
-              );
+    gridPromise.then(result => {
+      if (!isMounted) {
+        return;
+      }
 
-              resolve(result);
-            } catch ($error) {
-              console.error('Grid generation error:', $error);
-              resolve({grid: [], placedWords: [], normalizedPlacedWords: []});
-            }
-          });
+      if (result.gridData) {
+        setGridData(result.gridData);
+      } else {
+        setError(result.error);
+      }
 
-          gridGenerationPromise.then(
-            ({grid, placedWords, normalizedPlacedWords}) => {
-              if (!isMounted) {
-                return;
-              }
+      setIsLoading(false);
+    });
 
-              if (grid.length === 0) {
-                setError('Failed to generate grid. Please try again.');
-              } else {
-                setGridData({
-                  gridRows,
-                  gridCols,
-                  letterGrid: grid,
-                  placedWords,
-                  normalizedPlacedWords,
-                  gridHorizontalPadding,
-                });
-              }
-
-              setIsLoading(false);
-            },
-          );
-        } catch ($error) {
-          if (!isMounted) {
-            return;
-          }
-          console.error('Error in grid generation:', $error);
-          setError('Unexpected error occurred. Please try again.');
-          setIsLoading(false);
-        }
-      });
-    };
-
-    generateGridAsync();
-
-    // Cleanup to prevent state updates if component unmounts
     return () => {
       isMounted = false;
     };
-  }, [blockSize, gameKey, preDimensions, mode, category]);
+  }, [gameKey, gridSize, mode, category]);
 
-  // Check if we have a valid grid with content
   const hasValidGrid = gridData.letterGrid.length > 0 && !isLoading && !error;
-
-  // Calculate fallback dimensions for loading state
   const loadingDimensions = {
     width: preDimensions.width,
     height: preDimensions.height,

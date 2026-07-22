@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {View, Text, StyleSheet, Pressable} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -6,12 +6,17 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Animated, {FadeInDown, FadeIn} from 'react-native-reanimated';
 import {RootStackParamList} from './Navigation';
 import {GameMode} from '~/utils/types';
+import {prepareGrid} from '~/utils/gridGenerationCache';
 
 type MainMenuProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MainMenu'>;
 };
 
 const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
+  useEffect(() => {
+    prepareGrid({category: 'general', gridSize: 'medium', mode: 'daily'});
+  }, []);
+
   const handleModeSelection = (mode: GameMode) => {
     switch (mode) {
       case 'classic': {
