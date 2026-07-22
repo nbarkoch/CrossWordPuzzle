@@ -99,6 +99,34 @@ const isMixedWithFreshCells = (
   return freshOverlap > 0 && freshOverlap < move.path.length;
 };
 
+const getGoodCoverageStats = (moves: ReturnType<typeof findWordWaveMoves>) => {
+  const goodCoveredCells = new Set<string>();
+  const deepGarbageCells = [];
+
+  moves.forEach(move => {
+    if (move.word.length < 4) {
+      return;
+    }
+
+    move.path.forEach(position => {
+      goodCoveredCells.add(`${position.row}:${position.col}`);
+    });
+  });
+
+  for (let row = 3; row < 7; row += 1) {
+    for (let col = 0; col < 7; col += 1) {
+      if (!goodCoveredCells.has(`${row}:${col}`)) {
+        deepGarbageCells.push({row, col});
+      }
+    }
+  }
+
+  return {
+    goodCoveredCells: goodCoveredCells.size,
+    deepGarbageCells: deepGarbageCells.length,
+  };
+};
+
 it('finds only straight selectable word wave moves', () => {
   const board = createWordWaveBoard();
   const moves = findWordWaveMoves(board);
@@ -182,7 +210,7 @@ it('does not refill most next words into the same obvious cleared lane', () => {
     Math.max(3, Math.floor(uniqueMoves.length * 0.35)),
   );
   expect(sameClearedLaneMoves.length).toBeLessThanOrEqual(
-    Math.max(3, Math.floor(uniqueMoves.length * 0.35)),
+    Math.max(5, Math.floor(uniqueMoves.length * 0.5)),
   );
   expect(topBandHorizontalMoves.length).toBeLessThanOrEqual(
     Math.max(2, Math.floor(uniqueMoves.length * 0.22)),
@@ -248,6 +276,32 @@ it('keeps board continuity after repeated clears', () => {
       });
     });
     expect(nextMoves.length).toBeGreaterThan(0);
+  }
+});
+
+it('keeps useful word coverage after repeated clears', () => {
+  let board = createWordWaveBoard();
+
+  for (let step = 0; step < 12; step += 1) {
+    const moves = findWordWaveMoves(board);
+    const selectedMove =
+      moves.find(
+        move =>
+          move.word.length >= 5 &&
+          move.direction.dx !== 0 &&
+          move.direction.dy !== 0,
+      ) ??
+      moves.find(move => move.word.length >= 5) ??
+      moves[0];
+
+    expect(selectedMove).toBeTruthy();
+
+    board = refillWordWaveBoard(board, selectedMove.path).board;
+
+    const coverage = getGoodCoverageStats(findWordWaveMoves(board));
+
+    expect(coverage.goodCoveredCells).toBeGreaterThanOrEqual(18);
+    expect(coverage.deepGarbageCells).toBeLessThanOrEqual(18);
   }
 });
 

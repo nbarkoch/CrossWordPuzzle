@@ -30,6 +30,7 @@ import {
   WORD_WAVE_SIZE,
   WordWaveBoard,
   WordWavePosition,
+  WordWaveRefillResult,
   WordWaveTile,
 } from '~/utils/wordWave';
 
@@ -46,6 +47,9 @@ type TileProps = {
   selected: boolean;
   valid: boolean;
 };
+
+const getPathCacheKey = (path: WordWavePosition[]) =>
+  path.map(position => `${position.row}:${position.col}`).join('|');
 
 const Tile: React.FC<TileProps> = ({
   tile,
@@ -120,6 +124,9 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   const spawnedTilePositionsRef = useRef<Map<string, WordWavePosition>>(
     new Map(),
   );
+  const predictedRefillsRef = useRef<Map<string, WordWaveRefillResult>>(
+    new Map(),
+  );
   const {width} = useWindowDimensions();
   const boardSize = Math.min(width - 24, 380);
   const cellSize = boardSize / WORD_WAVE_SIZE;
@@ -160,6 +167,38 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     [board],
   );
 
+  useEffect(() => {
+    let cancelled = false;
+    const predictions = new Map<string, WordWaveRefillResult>();
+    const predictedMoves = visibleWords.slice(0, 6);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let index = 0;
+
+    predictedRefillsRef.current = predictions;
+
+    const prepareNext = () => {
+      if (cancelled || index >= predictedMoves.length) {
+        return;
+      }
+
+      const move = predictedMoves[index];
+      index += 1;
+
+      predictions.set(getPathCacheKey(move.path), refillWordWaveBoard(board, move.path));
+      timer = setTimeout(prepareNext, 20);
+    };
+
+    timer = setTimeout(prepareNext, 80);
+
+    return () => {
+      cancelled = true;
+
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [board, visibleWords]);
+
   const removeSelection = (path: WordWavePosition[]) => {
     setIsResolving(true);
     startPositionRef.current = null;
@@ -175,7 +214,9 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
         });
       });
 
-      const result = refillWordWaveBoard(board, path);
+      const result =
+        predictedRefillsRef.current.get(getPathCacheKey(path)) ??
+        refillWordWaveBoard(board, path);
       const spawnedPositions = new Map<string, WordWavePosition>();
       const newTilesByCol = new Map<
         number,

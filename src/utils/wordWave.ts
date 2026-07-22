@@ -603,6 +603,59 @@ const getCellUsagePenalty = (moves: WordWaveMove[]) => {
   );
 };
 
+const getMoveCoverage = (moves: WordWaveMove[]) => {
+  const coveredCells = new Set<string>();
+  const goodCoveredCells = new Set<string>();
+  const longCoveredCells = new Set<string>();
+  const deepGoodCoveredCells = new Set<string>();
+
+  moves.forEach(move => {
+    move.path.forEach(position => {
+      const key = positionKey(position);
+      coveredCells.add(key);
+
+      if (move.word.length >= 4) {
+        goodCoveredCells.add(key);
+
+        if (position.row >= 3) {
+          deepGoodCoveredCells.add(key);
+        }
+      }
+
+      if (move.word.length >= 5) {
+        longCoveredCells.add(key);
+      }
+    });
+  });
+
+  const allCells = Array.from({length: WORD_WAVE_SIZE}, (_, row) =>
+    Array.from({length: WORD_WAVE_SIZE}, (__, col) => ({row, col})),
+  ).flat();
+  const unreachableCells = allCells.filter(
+    position => !coveredCells.has(positionKey(position)),
+  ).length;
+  const garbageCells = allCells.filter(
+    position => !goodCoveredCells.has(positionKey(position)),
+  ).length;
+  const deepGarbageCells = allCells.filter(
+    position => position.row >= 3 && !goodCoveredCells.has(positionKey(position)),
+  ).length;
+  const longGarbageCells = allCells.filter(
+    position => !longCoveredCells.has(positionKey(position)),
+  ).length;
+
+  return {
+    coveredCells: coveredCells.size,
+    goodCoveredCells: goodCoveredCells.size,
+    longCoveredCells: longCoveredCells.size,
+    deepGoodCoveredCells: deepGoodCoveredCells.size,
+    unreachableCells,
+    garbageCells,
+    deepGarbageCells,
+    longGarbageCells,
+  };
+};
+
 const scoreWordWaveBoard = (
   board: WordWaveBoard,
   context?: WordWaveScoreContext,
@@ -678,6 +731,7 @@ const scoreWordWaveBoard = (
       touchesEdge(move),
   ).length;
   const repeatedCellPenalty = getCellUsagePenalty(uniqueMoves);
+  const coverage = getMoveCoverage(uniqueMoves);
   const diagonalBalancePenalty =
     uniqueMoves.length > 0
       ? Math.abs(diagonalMoves / uniqueMoves.length - 0.45) * 120
@@ -694,11 +748,14 @@ const scoreWordWaveBoard = (
     mixedMoves * 42 +
     mixedMoveScore * 3 +
     areaScore * 8 +
+    coverage.goodCoveredCells * 52 +
+    coverage.longCoveredCells * 32 +
+    coverage.deepGoodCoveredCells * 68 +
     directionCount * 32 +
     locationBucketCount * 28 +
     centralityScore * 18 +
     averageLength * 18 -
-    shortWords * 220 -
+    shortWords * 360 -
     edgeWords * 16 -
     easyWords * 84 -
     topBandMoves * 54 -
@@ -706,6 +763,10 @@ const scoreWordWaveBoard = (
     freshDominatedMoves * 44 -
     freshAxisMoves * 28 -
     sameClearedLaneMoves * 260 -
+    coverage.unreachableCells * 90 -
+    coverage.garbageCells * 260 -
+    coverage.deepGarbageCells * 420 -
+    coverage.longGarbageCells * 34 -
     repeatedCellPenalty * 16 -
     diagonalBalancePenalty -
     axisOnlyPenalty;
@@ -732,6 +793,7 @@ const scoreWordWaveBoard = (
     freshDominatedMoves,
     freshAxisMoves,
     sameClearedLaneMoves,
+    ...coverage,
     repeatedCellPenalty,
     score,
   };
@@ -766,7 +828,7 @@ const isBoardQualityPlayable = (quality: ReturnType<typeof scoreWordWaveBoard>) 
   (!quality.usesRefillContext || quality.mixedMoves >= 1) &&
   quality.directionCount >= 4 &&
   quality.locationBucketCount >= 6 &&
-  quality.shortWords <= Math.ceil(quality.uniqueWords * 0.38) &&
+  quality.shortWords <= Math.ceil(quality.uniqueWords * 0.3) &&
   quality.easyWords <= Math.ceil(quality.uniqueWords * 0.32) &&
   quality.topBandHorizontalMoves <= Math.max(1, Math.floor(quality.uniqueWords * 0.18)) &&
   quality.freshDominatedMoves <= Math.max(2, Math.floor(quality.uniqueWords * 0.25)) &&
@@ -989,6 +1051,7 @@ const getSmartInjectionOptions = (
 const createSmartCandidateSlots = (
   collapsedSlots: BoardSlots,
   options: WordWaveInjectionOption[],
+  maxInjectedWords = 5,
 ) => {
   const slots = cloneSlots(collapsedSlots);
   const usedWords = new Set<string>();
@@ -1001,7 +1064,7 @@ const createSmartCandidateSlots = (
   }
 
   options.some(option => {
-    if (usedWords.size >= 3) {
+    if (usedWords.size >= maxInjectedWords) {
       return true;
     }
 
@@ -1085,11 +1148,15 @@ const getStaticRefillForecastScore = (candidate: ScoredWordWaveCandidate) => {
   const deepPenalty = Math.max(0, 7 - deepMoves) * 280;
   const coveragePenalty = Math.max(0, 5 - rowCoverage) * 190 +
     Math.max(0, 5 - colCoverage) * 190;
+  const garbagePenalty =
+    candidate.quality.garbageCells * 520 +
+    candidate.quality.deepGarbageCells * 820 +
+    candidate.quality.unreachableCells * 260;
   const topHeavyPenalty = topHeavyMoves * 120;
   const sameLanePenalty = candidate.quality.sameClearedLaneMoves * 1250;
   const topHorizontalPenalty = candidate.quality.topBandHorizontalMoves * 240;
   const freshDominatedPenalty = candidate.quality.freshDominatedMoves * 150;
-  const shortWordPenalty = candidate.quality.shortWords * 260;
+  const shortWordPenalty = candidate.quality.shortWords * 520;
   const diagonalPenalty = Math.abs(diagonalRatio - 0.45) * 500;
 
   return (
@@ -1100,12 +1167,16 @@ const getStaticRefillForecastScore = (candidate: ScoredWordWaveCandidate) => {
     candidate.quality.mixedMoves * 160 +
     candidate.quality.mixedMoveScore * 4 +
     candidate.quality.areaScore * 10 +
+    candidate.quality.goodCoveredCells * 260 +
+    candidate.quality.longCoveredCells * 120 +
+    candidate.quality.deepGoodCoveredCells * 280 +
     rowCoverage * 95 +
     colCoverage * 95 -
     scarcityPenalty -
     directionPenalty -
     deepPenalty -
     coveragePenalty -
+    garbagePenalty -
     topHeavyPenalty -
     sameLanePenalty -
     topHorizontalPenalty -
@@ -1124,9 +1195,11 @@ const selectBestRefillCandidate = (
     return (
       candidate.quality.sameClearedLaneMoves <=
         Math.max(3, Math.floor(uniqueWords * 0.24)) &&
-      candidate.quality.shortWords <= Math.max(3, Math.floor(uniqueWords * 0.4)) &&
+      candidate.quality.shortWords <= Math.max(3, Math.floor(uniqueWords * 0.3)) &&
       candidate.quality.topBandHorizontalMoves <=
-        Math.max(2, Math.floor(uniqueWords * 0.2))
+        Math.max(2, Math.floor(uniqueWords * 0.2)) &&
+      candidate.quality.goodCoveredCells >= 34 &&
+      candidate.quality.deepGarbageCells <= 9
     );
   });
   const candidatesToScore =
@@ -1139,6 +1212,12 @@ const selectBestRefillCandidate = (
   );
 };
 
+const isCoverageRescueNeeded = (candidate: ScoredWordWaveCandidate) =>
+  candidate.quality.goodCoveredCells < 30 ||
+  candidate.quality.deepGarbageCells > 12 ||
+  candidate.quality.sameClearedLaneMoves >
+    Math.max(3, Math.floor(Math.max(1, candidate.quality.uniqueWords) * 0.35));
+
 export const refillWordWaveBoard = (
   board: WordWaveBoard,
   removedPath: WordWavePosition[],
@@ -1150,7 +1229,11 @@ export const refillWordWaveBoard = (
   const injectionOptions = getSmartInjectionOptions(collapsedSlots, scoreContext);
   const firstSlots =
     injectionOptions.length > 0
-      ? createSmartCandidateSlots(collapsedSlots, injectionOptions)
+      ? createSmartCandidateSlots(
+          collapsedSlots,
+          injectionOptions,
+          candidateAttempts >= 120 ? 6 : 5,
+        )
       : cloneSlots(collapsedSlots);
   let bestBoard = fillRandomSlots(firstSlots);
   let bestQuality = scoreWordWaveBoard(bestBoard, scoreContext);
@@ -1161,7 +1244,11 @@ export const refillWordWaveBoard = (
   for (let attempts = 1; attempts <= candidateAttempts; attempts += 1) {
     const candidateSlots =
       injectionOptions.length > 0 && attempts % 6 !== 0
-        ? createSmartCandidateSlots(collapsedSlots, injectionOptions)
+        ? createSmartCandidateSlots(
+            collapsedSlots,
+            injectionOptions,
+            candidateAttempts >= 120 ? 6 : 5,
+          )
         : cloneSlots(collapsedSlots);
     const candidate = fillRandomSlots(candidateSlots);
     const quality = scoreWordWaveBoard(candidate, scoreContext);
@@ -1192,6 +1279,10 @@ export const refillWordWaveBoard = (
 
   bestBoard = forecastBest.board;
   bestQuality = forecastBest.quality;
+
+  if (isCoverageRescueNeeded(forecastBest) && candidateAttempts < 160) {
+    return refillWordWaveBoard(board, removedPath, minAcceptedMoves, 160);
+  }
 
   if (
     injectedWords.length > 0 &&
