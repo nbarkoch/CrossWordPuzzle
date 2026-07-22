@@ -132,6 +132,7 @@ const styles = StyleSheet.create({
   listContainer: {
     width: width,
     flex: 1,
+    paddingBottom: 5,
   },
   scrollContent: {
     paddingHorizontal: 12,
