@@ -132,6 +132,13 @@ const reverseWord = (word: string) => word.split('').reverse().join('');
 const getDirectionKey = (direction: Direction) =>
   `${direction.dx},${direction.dy}`;
 
+const shuffleInPlace = <T>(items: T[], random: () => number) => {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+};
+
 const createDirectionCounts = () =>
   Object.fromEntries(
     VALID_DIRECTIONS.map(direction => [getDirectionKey(direction), 0]),
@@ -193,13 +200,17 @@ const sampleWords = (
   random: () => number,
   sampleSize: number,
 ) => {
-  const pool = [...words];
   const sample: WordCandidate[] = [];
+  const selectedIndexes = new Set<number>();
+  const targetSize = Math.min(words.length, sampleSize);
 
-  while (pool.length > 0 && sample.length < sampleSize) {
-    const index = Math.floor(random() * pool.length);
-    sample.push(pool[index]);
-    pool.splice(index, 1);
+  while (sample.length < targetSize) {
+    const index = Math.floor(random() * words.length);
+
+    if (!selectedIndexes.has(index)) {
+      selectedIndexes.add(index);
+      sample.push(words[index]);
+    }
   }
 
   return sample;
@@ -215,10 +226,7 @@ const shufflePlacedWordPairs = (
     normalizedWord: normalizedPlacedWords[index],
   }));
 
-  for (let i = wordPairs.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [wordPairs[i], wordPairs[j]] = [wordPairs[j], wordPairs[i]];
-  }
+  shuffleInPlace(wordPairs, random);
 
   return {
     placedWords: wordPairs.map(pair => pair.word),
@@ -229,28 +237,30 @@ const shufflePlacedWordPairs = (
 const scorePlacement = (
   grid: string[][],
   word: string,
-  position: Position,
+  row: number,
+  col: number,
   direction: Direction,
+  directionKey: string,
   directionCounts: Record<string, number>,
   placedWordCount: number,
   random: () => number,
-) => {
+): number | null => {
   let overlappingLetters = 0;
   let emptyLetters = 0;
 
   for (let i = 0; i < word.length; i++) {
-    const row = position.row + direction.dy * i;
-    const col = position.col + direction.dx * i;
-    const currentCell = grid[row][col];
+    const currentCell = grid[row + direction.dy * i][col + direction.dx * i];
 
     if (currentCell === word[i]) {
       overlappingLetters += 1;
-    } else {
+    } else if (currentCell === '') {
       emptyLetters += 1;
+    } else {
+      return null;
     }
   }
 
-  const directionCount = directionCounts[getDirectionKey(direction)] || 0;
+  const directionCount = directionCounts[directionKey] || 0;
   const expectedDirectionCount =
     (placedWordCount + 1) / VALID_DIRECTIONS.length;
   const directionBalanceScore = (expectedDirectionCount - directionCount) * 250;
@@ -320,32 +330,29 @@ const findValidPlacement = (
         continue;
       }
 
+      const directionKey = getDirectionKey(direction);
+
       for (let row = minRow; row <= maxRow; row++) {
         for (let col = minCol; col <= maxCol; col++) {
-          const position = {row, col};
+          const score = scorePlacement(
+            grid,
+            wordCandidate.normalizedWord,
+            row,
+            col,
+            direction,
+            directionKey,
+            directionCounts,
+            placedWordCount,
+            random,
+          );
 
-          if (
-            canPlaceWord(
-              grid,
-              wordCandidate.normalizedWord,
-              position,
-              direction,
-            )
-          ) {
+          if (score !== null) {
             const candidate = {
               word: wordCandidate.word,
               normalizedWord: wordCandidate.normalizedWord,
-              position,
+              position: {row, col},
               direction,
-              score: scorePlacement(
-                grid,
-                wordCandidate.normalizedWord,
-                position,
-                direction,
-                directionCounts,
-                placedWordCount,
-                random,
-              ),
+              score,
             };
 
             if (!bestCandidate || candidate.score > bestCandidate.score) {
@@ -378,45 +385,6 @@ const placeWord = (
     const col = start.col + direction.dx * i;
     grid[row][col] = word[i];
   }
-};
-
-/**
- * Checks if a word can be placed at the specified position and direction
- * @param grid The current grid
- * @param word The word to check
- * @param start The starting position
- * @param direction The direction to check
- * @returns Whether the word can be placed
- */
-const canPlaceWord = (
-  grid: string[][],
-  word: string,
-  start: Position,
-  direction: Direction,
-): boolean => {
-  const gridRows = grid.length;
-  const gridCols = grid[0].length;
-
-  // Check if word fits within grid bounds
-  const endRow = start.row + direction.dy * (word.length - 1);
-  const endCol = start.col + direction.dx * (word.length - 1);
-
-  if (endRow < 0 || endRow >= gridRows || endCol < 0 || endCol >= gridCols) {
-    return false;
-  }
-
-  // Check if word can be placed (empty cells or matching letters)
-  for (let i = 0; i < word.length; i++) {
-    const currentRow = start.row + direction.dy * i;
-    const currentCol = start.col + direction.dx * i;
-    const currentCell = grid[currentRow][currentCol];
-
-    if (currentCell !== '' && currentCell !== word[i]) {
-      return false;
-    }
-  }
-
-  return true;
 };
 
 /**
@@ -582,19 +550,7 @@ export const generateLetterGrid = (
 
   // If isDaily, we want a deterministic shuffle
   const shuffledWords = [...validWords];
-  if (isDaily) {
-    // Fisher-Yates shuffle with seeded random
-    for (let i = shuffledWords.length - 1; i > 0; i--) {
-      const j = Math.floor(random() * (i + 1));
-      [shuffledWords[i], shuffledWords[j]] = [
-        shuffledWords[j],
-        shuffledWords[i],
-      ];
-    }
-  } else {
-    // Regular shuffle for normal mode
-    shuffledWords.sort(() => random() - 0.5);
-  }
+  shuffleInPlace(shuffledWords, random);
 
   const limitedShuffledWords = shuffledWords
     .slice(0, maxWords * 4)
