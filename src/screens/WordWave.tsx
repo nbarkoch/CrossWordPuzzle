@@ -365,6 +365,13 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     () => (board.length > 0 ? findWordWaveMoves(board) : []),
     [board],
   );
+  // Every word found this game. A word may only be used once per game, so this
+  // set gates hints, selection validity, and acceptance. Resets with foundWords
+  // on "Play Again".
+  const usedWords = useMemo(
+    () => new Set(foundWords.map(item => item.word)),
+    [foundWords],
+  );
   const selectedWord = useMemo(
     () => getWordFromPath(board, selection),
     [board, selection],
@@ -374,7 +381,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     [board, selection],
   );
   const visibleWords = useMemo(() => {
-    const usedWords = new Set<string>();
+    const seenWords = new Set<string>();
 
     return moves
       .filter(move => {
@@ -382,11 +389,12 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
           return false;
         }
 
-        if (usedWords.has(move.word)) {
+        // Skip words already used earlier this game and same-board duplicates.
+        if (usedWords.has(move.word) || seenWords.has(move.word)) {
           return false;
         }
 
-        usedWords.add(move.word);
+        seenWords.add(move.word);
         return true;
       })
       .sort(
@@ -396,7 +404,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
           a.word.localeCompare(b.word),
       )
       .slice(0, 12);
-  }, [moves]);
+  }, [moves, usedWords]);
   const renderedTiles = useMemo(
     () =>
       board.flatMap((rowTiles, row) =>
@@ -629,7 +637,12 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   const resolveWordSelection = () => {
     const move = getMoveForPath(board, selectionRef.current);
 
-    if (!move || isResolving || runStateRef.current !== 'playing') {
+    if (
+      !move ||
+      isResolving ||
+      runStateRef.current !== 'playing' ||
+      usedWords.has(move.word)
+    ) {
       return;
     }
 
@@ -717,7 +730,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
 
     const move = getMoveForPath(board, selectionRef.current);
 
-    if (move && !isResolving) {
+    if (move && !isResolving && !usedWords.has(move.word)) {
       resolveWordSelection();
     } else {
       startPositionRef.current = null;
@@ -758,6 +771,9 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   };
 
   const hasWord = selectedWord.length > 0;
+  // A move that forms an already-used word is not acceptable — treat it as
+  // invalid so the selection line reflects it and release rejects it.
+  const isSelectionValid = Boolean(selectedMove) && !usedWords.has(selectedWord);
 
   return (
     <View style={styles.container}>
@@ -883,7 +899,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
               <WordWaveSelectionLine
                 selection={selection}
                 cellSize={cellSize}
-                valid={Boolean(selectedMove)}
+                valid={isSelectionValid}
               />
             </View>
             {isBoardLoading && (
