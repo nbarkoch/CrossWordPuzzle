@@ -14,7 +14,6 @@ import Animated, {
   FadeIn,
   FadeOut,
   LinearTransition,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -43,6 +42,7 @@ import {
   WordWaveTile,
 } from '~/utils/wordWave';
 import {Banner} from '~/components/AdBanner';
+import {runOnJS} from 'react-native-worklets';
 
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 

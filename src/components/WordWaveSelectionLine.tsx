@@ -1,4 +1,4 @@
-import React, {useEffect, useRef} from 'react';
+import React, {useLayoutEffect, useRef} from 'react';
 import {StyleSheet} from 'react-native';
 import {Canvas, Group, Path, Skia} from '@shopify/react-native-skia';
 import {
@@ -41,16 +41,26 @@ const WordWaveSelectionLine: React.FC<WordWaveSelectionLineProps> = ({
   const pathScale = useSharedValue(0);
   const pathOpacity = useSharedValue(0);
 
+  // Validity is frozen while the line is fading out, so a valid word that just
+  // got released keeps its green color instead of flashing back to violet.
+  const validState = useSharedValue(false);
+
   // Distinguish a brand-new drag (snap into place) from a continuing one (spring).
   const wasActiveRef = useRef(false);
 
-  useEffect(() => {
+  // Layout effect (runs before paint) so geometry is never a frame behind the
+  // touch — a fresh drag can't briefly render at the previous word's location.
+  useLayoutEffect(() => {
     if (!hasSelection) {
       wasActiveRef.current = false;
+      // Leave validState untouched so the exit fade keeps the last color.
       pathScale.value = withSpring(0, OUT_SPRING);
       pathOpacity.value = withSpring(0, OUT_SPRING);
       return;
     }
+
+    // Only update the color while there is an active selection.
+    validState.value = valid;
 
     const start = selection[0];
     const end = selection[selection.length - 1];
@@ -83,6 +93,7 @@ const WordWaveSelectionLine: React.FC<WordWaveSelectionLineProps> = ({
   }, [
     hasSelection,
     selection,
+    valid,
     cellSize,
     startX,
     startY,
@@ -91,6 +102,7 @@ const WordWaveSelectionLine: React.FC<WordWaveSelectionLineProps> = ({
     animatedLength,
     pathScale,
     pathOpacity,
+    validState,
   ]);
 
   const path = useDerivedValue(() => {
@@ -111,7 +123,11 @@ const WordWaveSelectionLine: React.FC<WordWaveSelectionLineProps> = ({
     () => Math.max(cellSize * 0.86 - 8, 0) * pathScale.value,
   );
 
-  const color = valid ? VALID_COLOR : ACTIVE_COLOR;
+  // Drive color on the UI thread from the frozen validity so the fade-out never
+  // changes color mid-animation.
+  const color = useDerivedValue(() =>
+    validState.value ? VALID_COLOR : ACTIVE_COLOR,
+  );
 
   return (
     <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
