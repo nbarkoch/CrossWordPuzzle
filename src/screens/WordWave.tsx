@@ -1,12 +1,8 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
+  FlatList,
   GestureResponderEvent,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,6 +11,9 @@ import {
   View,
 } from 'react-native';
 import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -26,6 +25,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 import NavigationBar from '~/components/NavigationBar';
+import WordWaveSelectionLine from '~/components/WordWaveSelectionLine';
 import {RootStackParamList} from './Navigation';
 import {
   applyWordWaveTimedRowDrop,
@@ -42,6 +42,9 @@ import {
   WordWavePosition,
   WordWaveTile,
 } from '~/utils/wordWave';
+import {Banner} from '~/components/AdBanner';
+
+const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 
 type WordWaveProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'WordWave'>;
@@ -53,7 +56,6 @@ type TileProps = {
   col: number;
   cellSize: number;
   selected: boolean;
-  valid: boolean;
   hidden: boolean;
   spawnState?: WordWaveTileSpawnState;
   onSpawnConsumed: (tileId: string) => void;
@@ -64,7 +66,17 @@ type WordWaveTileSpawnState = {
   delayMs: number;
 };
 
+type WordWaveFoundWord = {
+  id: string;
+  word: string;
+  wave: number;
+  score: number;
+};
+
+type WordWaveRunState = 'ready' | 'playing' | 'ended';
+
 const WORD_WAVE_ROW_DROP_SECONDS = 10;
+const WORD_WAVE_TOTAL_WAVES = 10;
 const tileSpringConfig = {
   mass: 0.35,
   damping: 14,
@@ -74,6 +86,7 @@ const TILE_SPAWN_COLUMN_DELAY_MS = 16;
 const TILE_SPAWN_STACK_DELAY_MS = 42;
 const WORD_WAVE_DROP_INPUT_GRACE_MS = 120;
 const WORD_WAVE_PENDING_DROP_PENALTY = 2;
+const READY_STEPS = ['Ready', 'Set', 'Go!'];
 
 const getNewTileSpawnPositions = (
   previousBoard: WordWaveBoard,
@@ -130,7 +143,6 @@ const Tile: React.FC<TileProps> = ({
   col,
   cellSize,
   selected,
-  valid,
   hidden,
   spawnState,
   onSpawnConsumed,
@@ -138,14 +150,11 @@ const Tile: React.FC<TileProps> = ({
   const startPosition = spawnState?.startPosition;
   const consumedSpawnIdRef = useRef<string | null>(null);
   const spawnFrameRef = useRef<number | null>(null);
-  const translateX = useSharedValue(
-    (startPosition?.col ?? col) * cellSize,
-  );
-  const translateY = useSharedValue(
-    (startPosition?.row ?? row) * cellSize,
-  );
+  const translateX = useSharedValue((startPosition?.col ?? col) * cellSize);
+  const translateY = useSharedValue((startPosition?.row ?? row) * cellSize);
   const letterTranslateX = useSharedValue(0);
   const letterOpacity = useSharedValue(1);
+  const selectionScale = useSharedValue(1);
   const tileAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{translateX: translateX.value}, {translateY: translateY.value}],
   }));
@@ -153,6 +162,17 @@ const Tile: React.FC<TileProps> = ({
     opacity: letterOpacity.value,
     transform: [{translateX: letterTranslateX.value}],
   }));
+  const selectionAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{scale: selectionScale.value}],
+  }));
+
+  useEffect(() => {
+    selectionScale.value = withSpring(selected ? 1.15 : 1, {
+      mass: 0.5,
+      damping: 12,
+      stiffness: 90,
+    });
+  }, [selected, selectionScale]);
 
   useEffect(() => {
     const targetX = col * cellSize;
@@ -239,10 +259,13 @@ const Tile: React.FC<TileProps> = ({
       <Animated.View
         style={[
           styles.tile,
-          selected && styles.tileSelected,
-          valid && styles.tileValid,
           hidden && styles.tileHidden,
+          selectionAnimatedStyle,
         ]}>
+        <LinearGradient
+          style={styles.tileFill}
+          colors={['#F7EEFB', '#FBF6FD', '#F6EFFB']}
+        />
         <Animated.Text style={[styles.tileLetter, letterAnimatedStyle]}>
           {tile.letter}
         </Animated.Text>
@@ -259,15 +282,18 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   const [dropSecondsLeft, setDropSecondsLeft] = useState(
     WORD_WAVE_ROW_DROP_SECONDS,
   );
-  const [pressureScore, setPressureScore] = useState(0);
+  const [runState, setRunState] = useState<WordWaveRunState>('ready');
+  const [readyStepIndex, setReadyStepIndex] = useState(0);
   const [arcadeScore, setArcadeScore] = useState(0);
   const [wordsFound, setWordsFound] = useState(0);
-  const [rowDrops, setRowDrops] = useState(0);
-  const [lastRepairCount, setLastRepairCount] = useState(0);
+  const [currentWave, setCurrentWave] = useState(1);
+  const [foundWords, setFoundWords] = useState<WordWaveFoundWord[]>([]);
   const [hintIndex, setHintIndex] = useState(0);
   const [isResolving, setIsResolving] = useState(false);
   const [hiddenTileIds, setHiddenTileIds] = useState<Set<string>>(new Set());
   const [pendingRowDrop, setPendingRowDrop] = useState(false);
+  const runStateRef = useRef<WordWaveRunState>('ready');
+  const currentWaveRef = useRef(1);
   const isResolvingRef = useRef(false);
   const isDraggingRef = useRef(false);
   const pendingRowDropRef = useRef(false);
@@ -282,9 +308,15 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     new Map(),
   );
   const [, setSpawnVersion] = useState(0);
-  const {width} = useWindowDimensions();
-  const boardSize = Math.min(width - 24, 380);
+  const {width, height} = useWindowDimensions();
+  const boardSize = Math.min(width - 20, height * 0.52, 440);
   const cellSize = boardSize / WORD_WAVE_SIZE;
+  const readyScale = useSharedValue(0.82);
+  const readyOpacity = useSharedValue(0);
+  const readyAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: readyOpacity.value,
+    transform: [{scale: readyScale.value}],
+  }));
 
   const moves = useMemo(() => findWordWaveMoves(board), [board]);
   const selectedWord = useMemo(
@@ -326,11 +358,84 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
       ),
     [board],
   );
+  const wordsByWave = useMemo(
+    () =>
+      Array.from({length: WORD_WAVE_TOTAL_WAVES}, (_, index) => {
+        const wave = index + 1;
+        const words = foundWords.filter(item => item.wave === wave);
+
+        return {
+          wave,
+          words,
+          score: words.reduce((sum, item) => sum + item.score, 0),
+        };
+      }),
+    [foundWords],
+  );
+
+  useEffect(() => {
+    if (runState !== 'ready') {
+      readyOpacity.value = withTiming(0, {duration: 120});
+      return;
+    }
+
+    readyScale.value = 0.82;
+    readyOpacity.value = 1;
+    readyScale.value = withSpring(1.18, {
+      mass: 0.35,
+      damping: 8,
+      stiffness: 110,
+    });
+  }, [readyOpacity, readyScale, readyStepIndex, runState]);
+
+  const endRun = useCallback(() => {
+    runStateRef.current = 'ended';
+    setRunState('ended');
+    pendingRowDropRef.current = false;
+    setPendingRowDrop(false);
+    isDraggingRef.current = false;
+    startPositionRef.current = null;
+    selectionRef.current = [];
+    setSelection([]);
+  }, []);
+
+  const resetRun = useCallback(() => {
+    const nextBoard = createWordWaveBoard();
+
+    runStateRef.current = 'ready';
+    currentWaveRef.current = 1;
+    pendingRowDropRef.current = false;
+    isDraggingRef.current = false;
+    isResolvingRef.current = false;
+    dropSecondsLeftRef.current = WORD_WAVE_ROW_DROP_SECONDS;
+    startPositionRef.current = null;
+    selectionRef.current = [];
+    newTileSpawnPositionsRef.current = new Map();
+
+    setBoard(nextBoard);
+    setSelection([]);
+    setDropSecondsLeft(WORD_WAVE_ROW_DROP_SECONDS);
+    setRunState('ready');
+    setReadyStepIndex(0);
+    setArcadeScore(0);
+    setWordsFound(0);
+    setCurrentWave(1);
+    setFoundWords([]);
+    setHintIndex(0);
+    setIsResolving(false);
+    setHiddenTileIds(new Set());
+    setPendingRowDrop(false);
+  }, []);
 
   const applyPendingRowDrop = useCallback(() => {
     if (pendingDropTimerRef.current) {
       clearTimeout(pendingDropTimerRef.current);
       pendingDropTimerRef.current = null;
+    }
+
+    if (currentWaveRef.current >= WORD_WAVE_TOTAL_WAVES) {
+      endRun();
+      return;
     }
 
     pendingRowDropRef.current = false;
@@ -346,8 +451,9 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
       );
       return nextBoard;
     });
-    setRowDrops(count => count + 1);
-  }, []);
+    currentWaveRef.current += 1;
+    setCurrentWave(currentWaveRef.current);
+  }, [endRun]);
 
   const armPendingRowDrop = useCallback(() => {
     if (pendingRowDropRef.current) {
@@ -358,7 +464,6 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     setPendingRowDrop(true);
     dropSecondsLeftRef.current = 0;
     setDropSecondsLeft(0);
-    setPressureScore(score => score - WORD_WAVE_SIZE);
   }, []);
 
   const applyPendingRowDropAfterInputGrace = useCallback(() => {
@@ -384,14 +489,47 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   }, [isResolving]);
 
   useEffect(() => {
+    runStateRef.current = runState;
+  }, [runState]);
+
+  useEffect(() => {
+    currentWaveRef.current = currentWave;
+  }, [currentWave]);
+
+  useEffect(() => {
+    if (runState !== 'ready') {
+      return;
+    }
+
+    const readyTimer = setInterval(() => {
+      setReadyStepIndex(index => {
+        if (index >= READY_STEPS.length - 1) {
+          clearInterval(readyTimer);
+          runStateRef.current = 'playing';
+          setRunState('playing');
+          return index;
+        }
+
+        return index + 1;
+      });
+    }, 700);
+
+    return () => {
+      clearInterval(readyTimer);
+    };
+  }, [runState]);
+
+  useEffect(() => {
     const timer = setInterval(() => {
-      if (isResolvingRef.current) {
+      if (runStateRef.current !== 'playing' || isResolvingRef.current) {
         return;
       }
 
       if (pendingRowDropRef.current) {
         if (isDraggingRef.current) {
-          setPressureScore(score => score - WORD_WAVE_PENDING_DROP_PENALTY);
+          setArcadeScore(score =>
+            Math.max(0, score - WORD_WAVE_PENDING_DROP_PENALTY),
+          );
           return;
         }
 
@@ -440,7 +578,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   const resolveWordSelection = () => {
     const move = getMoveForPath(board, selectionRef.current);
 
-    if (!move || isResolving) {
+    if (!move || isResolving || runStateRef.current !== 'playing') {
       return;
     }
 
@@ -467,11 +605,18 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
         );
         setBoard(wordResult.board);
         setHiddenTileIds(new Set());
-        setPressureScore(score => score + wordResult.pressureScore);
         setArcadeScore(score => score + wordResult.arcadeScore);
         setWordsFound(count => count + 1);
-        setLastRepairCount(wordResult.repairedCount);
         setHintIndex(0);
+        setFoundWords(words => [
+          ...words,
+          {
+            id: `${Date.now()}:${move.word}:${words.length}`,
+            word: move.word,
+            wave: currentWaveRef.current,
+            score: wordResult.arcadeScore,
+          },
+        ]);
         isResolvingRef.current = false;
         setIsResolving(false);
 
@@ -500,7 +645,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   };
 
   const handleBoardTouch = (event: GestureResponderEvent) => {
-    if (isResolving) {
+    if (isResolving || runStateRef.current !== 'playing') {
       return;
     }
 
@@ -515,7 +660,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   const handleSelectionRelease = () => {
     isDraggingRef.current = false;
 
-    if (isResolving) {
+    if (isResolving || runStateRef.current !== 'playing') {
       return;
     }
 
@@ -561,118 +706,147 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     setHintIndex(index => index + 1);
   };
 
+  const hasWord = selectedWord.length > 0;
+
   return (
     <View style={styles.container}>
       <NavigationBar title="Word Wave" onBack={() => navigation.goBack()} />
       <LinearGradient
-        colors={['#11283D', '#245E62', '#F2B35C']}
+        colors={['#4B21A6', '#8043E9', '#9f4ef1', '#4B21A6']}
         style={styles.content}>
-        <View style={styles.statsRow}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>
-              {pendingRowDrop ? 'DROP' : dropSecondsLeft}
-            </Text>
-            <Text style={styles.statLabel}>Drop</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{pressureScore}</Text>
-            <Text style={styles.statLabel}>Wave</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{arcadeScore}</Text>
-            <Text style={styles.statLabel}>Score</Text>
-          </View>
+        <View style={styles.headerWrapper}>
+          <AnimatedLinearGradient
+            key={hasWord ? 'word-header' : 'info-header'}
+            style={[
+              styles.headerPill,
+              hasWord ? styles.wordPill : styles.infoPill,
+            ]}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 0}}
+            colors={
+              hasWord
+                ? ['#8925b453', '#953be396', '#8925b453']
+                : ['#8c3be396', '#4925b400', '#4925b400']
+            }
+            entering={FadeIn.duration(120)}
+            exiting={FadeOut.duration(90)}
+            layout={LinearTransition.springify()
+              .mass(0.3)
+              .damping(12)
+              .stiffness(100)}>
+            {hasWord ? (
+              <View style={styles.wordContainer}>
+                <Text style={styles.wordText}>{selectedWord}</Text>
+              </View>
+            ) : (
+              <View style={styles.badgesRow}>
+                <View style={styles.badge}>
+                  <Text
+                    style={[
+                      styles.badgeValue,
+                      pendingRowDrop && styles.badgeValueAlert,
+                    ]}>
+                    {pendingRowDrop ? 'DROP' : dropSecondsLeft}
+                  </Text>
+                  <Text style={styles.badgeLabel}>Drop In</Text>
+                </View>
+                <View style={styles.badgeSeparator} />
+                <View style={styles.badge}>
+                  <Text style={styles.badgeValue}>{arcadeScore}</Text>
+                  <Text style={styles.badgeLabel}>Score</Text>
+                </View>
+                <View style={styles.badgeSeparator} />
+                <View style={styles.badge}>
+                  <Text style={styles.badgeValue}>
+                    {currentWave}/{WORD_WAVE_TOTAL_WAVES}
+                  </Text>
+                  <Text style={styles.badgeLabel}>Wave</Text>
+                </View>
+              </View>
+            )}
+          </AnimatedLinearGradient>
         </View>
 
-        <View
-          onStartShouldSetResponder={() => {
-            if (isResolvingRef.current) {
-              return false;
-            }
-
-            isDraggingRef.current = true;
-            return true;
-          }}
-          onMoveShouldSetResponder={() => true}
-          onTouchStart={() => {
-            if (!isResolvingRef.current) {
-              isDraggingRef.current = true;
-            }
-          }}
-          onResponderGrant={event => {
-            if (isResolving) {
-              return;
-            }
-
-            const position = getPositionFromTouch(event);
-
-            isDraggingRef.current = Boolean(position);
-            startPositionRef.current = position;
-            setSelectionPath(position ? [position] : []);
-          }}
-          onResponderMove={handleBoardTouch}
-          onResponderRelease={handleSelectionRelease}
-          onResponderTerminate={handleSelectionRelease}
-          style={[styles.board, {width: boardSize, height: boardSize}]}>
-          {renderedTiles.map(({tile, row, col}) => {
-              const position = {row, col};
-              const selected = pathContainsPosition(selection, position);
-              const hidden = hiddenTileIds.has(tile.id);
-
-              return (
-                <Tile
-                  key={tile.id}
-                  tile={tile}
-                  row={row}
-                  col={col}
-                  cellSize={cellSize}
-                  selected={selected}
-                  valid={selected && Boolean(selectedMove)}
-                  hidden={hidden}
-                  spawnState={newTileSpawnPositionsRef.current.get(tile.id)}
-                  onSpawnConsumed={handleSpawnConsumed}
-                />
-              );
-            })}
-        </View>
-
-        <View style={styles.selectedPanel}>
-          <View>
-            <Text style={styles.panelLabel}>Selected</Text>
-            <Text style={styles.selectedWord}>{selectedWord || '-'}</Text>
-          </View>
-          <Pressable
-            disabled={!selectedMove || isResolving}
-            onPress={() =>
-              selectedMove && !isResolving && resolveWordSelection()
-            }
-            style={({pressed}) => [
-              styles.clearButton,
-              (!selectedMove || isResolving) && styles.clearButtonDisabled,
-              pressed && selectedMove && styles.clearButtonPressed,
+        <View style={styles.boardArea}>
+          <View
+            style={[
+              styles.boardShadowContainer,
+              {width: boardSize, height: boardSize},
             ]}>
-            <Text style={styles.clearButtonText}>
-              {isResolving ? '...' : 'Found'}
-            </Text>
-          </Pressable>
-        </View>
+            <View style={styles.gridFrame} />
+            <View
+              onStartShouldSetResponder={() => {
+                if (
+                  isResolvingRef.current ||
+                  runStateRef.current !== 'playing'
+                ) {
+                  return false;
+                }
 
-        <View style={styles.miniStatsRow}>
-          <Text style={styles.injectedText}>Words {wordsFound}</Text>
-          <Text style={styles.injectedText}>Rows {rowDrops}</Text>
-          <Text style={styles.injectedText}>Repair {lastRepairCount}</Text>
-          <Text style={styles.injectedText}>Options {visibleWords.length}</Text>
+                isDraggingRef.current = true;
+                return true;
+              }}
+              onMoveShouldSetResponder={() => true}
+              onTouchStart={() => {
+                if (
+                  !isResolvingRef.current &&
+                  runStateRef.current === 'playing'
+                ) {
+                  isDraggingRef.current = true;
+                }
+              }}
+              onResponderGrant={event => {
+                if (isResolving || runStateRef.current !== 'playing') {
+                  return;
+                }
+
+                const position = getPositionFromTouch(event);
+
+                isDraggingRef.current = Boolean(position);
+                startPositionRef.current = position;
+                setSelectionPath(position ? [position] : []);
+              }}
+              onResponderMove={handleBoardTouch}
+              onResponderRelease={handleSelectionRelease}
+              onResponderTerminate={handleSelectionRelease}
+              style={styles.gridContainer}>
+              {renderedTiles.map(({tile, row, col}) => {
+                const position = {row, col};
+                const selected = pathContainsPosition(selection, position);
+                const hidden = hiddenTileIds.has(tile.id);
+
+                return (
+                  <Tile
+                    key={tile.id}
+                    tile={tile}
+                    row={row}
+                    col={col}
+                    cellSize={cellSize}
+                    selected={selected}
+                    hidden={hidden}
+                    spawnState={newTileSpawnPositionsRef.current.get(tile.id)}
+                    onSpawnConsumed={handleSpawnConsumed}
+                  />
+                );
+              })}
+              <WordWaveSelectionLine
+                selection={selection}
+                cellSize={cellSize}
+                valid={Boolean(selectedMove)}
+              />
+            </View>
+          </View>
         </View>
 
         <View style={styles.wordsPanel}>
           <View style={styles.wordsHeader}>
-            <Text style={styles.panelLabel}>Available Words</Text>
+            <Text style={styles.panelLabel}>Words To Reveal</Text>
             <Pressable
               disabled={visibleWords.length === 0}
               onPress={highlightNextMove}
               style={({pressed}) => [
                 styles.hintButton,
-                visibleWords.length === 0 && styles.clearButtonDisabled,
+                visibleWords.length === 0 && styles.hintButtonDisabled,
                 pressed && styles.clearButtonPressed,
               ]}>
               <Text style={styles.hintButtonText}>Highlight</Text>
@@ -681,23 +855,111 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
           <ScrollView
             contentContainerStyle={styles.wordsWrap}
             showsVerticalScrollIndicator={false}>
-            {visibleWords.map(move => (
-              <Pressable
-                key={`${move.word}:${move.path
-                  .map(position => `${position.row}-${position.col}`)
-                  .join('.')}`}
-                onPress={() => highlightMove(move.path)}
-                style={({pressed}) => [
-                  styles.wordChip,
-                  selectedWord === move.word && styles.wordChipSelected,
-                  pressed && styles.wordChipPressed,
-                ]}>
-                <Text style={styles.wordChipText}>{move.word}</Text>
-              </Pressable>
-            ))}
+            {visibleWords.length === 0 ? (
+              <Text style={styles.wordsEmpty}>No words available</Text>
+            ) : (
+              visibleWords.map(move => (
+                <Pressable
+                  key={`${move.word}:${move.path
+                    .map(position => `${position.row}-${position.col}`)
+                    .join('.')}`}
+                  onPress={() => highlightMove(move.path)}
+                  style={({pressed}) => [
+                    styles.wordChip,
+                    selectedWord === move.word && styles.wordChipSelected,
+                    pressed && styles.wordChipPressed,
+                  ]}>
+                  <Text style={styles.wordChipText}>{move.word}</Text>
+                </Pressable>
+              ))
+            )}
           </ScrollView>
         </View>
+        {runState === 'ready' && (
+          <Animated.View
+            pointerEvents="none"
+            entering={FadeIn}
+            exiting={FadeOut}
+            style={styles.readyOverlay}>
+            <Animated.View style={[styles.readyGrid, readyAnimatedStyle]}>
+              <Text style={styles.readyText}>
+                {READY_STEPS[readyStepIndex]}
+              </Text>
+            </Animated.View>
+          </Animated.View>
+        )}
       </LinearGradient>
+
+      <Modal
+        visible={runState === 'ended'}
+        transparent
+        animationType="fade"
+        onRequestClose={resetRun}>
+        <View style={styles.summaryBackdrop}>
+          <View style={styles.summaryDialog}>
+            <Text style={styles.summaryTitle}>Run Complete</Text>
+            <View style={styles.summaryStatsRow}>
+              <View style={styles.summaryStat}>
+                <Text style={styles.summaryValue}>{arcadeScore}</Text>
+                <Text style={styles.summaryLabel}>Score</Text>
+              </View>
+              <View style={styles.summaryStat}>
+                <Text style={styles.summaryValue}>{wordsFound}</Text>
+                <Text style={styles.summaryLabel}>Words</Text>
+              </View>
+              <View style={styles.summaryStat}>
+                <Text style={styles.summaryValue}>
+                  {foundWords.reduce(
+                    (longest, item) => Math.max(longest, item.word.length),
+                    0,
+                  )}
+                </Text>
+                <Text style={styles.summaryLabel}>Best</Text>
+              </View>
+            </View>
+            <FlatList
+              data={wordsByWave}
+              keyExtractor={item => `wave-${item.wave}`}
+              style={styles.summaryList}
+              contentContainerStyle={styles.summaryListContent}
+              renderItem={({item}) => (
+                <View style={styles.waveSummaryRow}>
+                  <View style={styles.waveSummaryHeader}>
+                    <Text style={styles.waveSummaryTitle}>
+                      Wave {item.wave}
+                    </Text>
+                    <Text style={styles.waveSummaryScore}>{item.score}</Text>
+                  </View>
+                  <Text style={styles.waveSummaryWords}>
+                    {item.words.length > 0
+                      ? item.words.map(word => word.word).join(', ')
+                      : '-'}
+                  </Text>
+                </View>
+              )}
+            />
+            <View style={styles.summaryActions}>
+              <Pressable
+                onPress={resetRun}
+                style={({pressed}) => [
+                  styles.summaryButton,
+                  pressed && styles.clearButtonPressed,
+                ]}>
+                <Text style={styles.summaryButtonText}>Play Again</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => navigation.goBack()}
+                style={({pressed}) => [
+                  styles.summaryButton,
+                  styles.summaryButtonSecondary,
+                  pressed && styles.clearButtonPressed,
+                ]}>
+                <Text style={styles.summaryButtonText}>Home</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -705,148 +967,153 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#11283D',
+    backgroundColor: '#4B21A6',
   },
   content: {
     flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingTop: 14,
-    paddingBottom: 16,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 14,
   },
-  statsRow: {
+  headerWrapper: {
     width: '100%',
-    maxWidth: 380,
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
+    maxWidth: 440,
+    borderWidth: 1,
+    borderColor: '#9d46e9bc',
+    borderRadius: 22,
+    overflow: 'hidden',
   },
-  stat: {
+  headerPill: {
+    padding: 6,
+    minHeight: 60,
+    justifyContent: 'center',
+  },
+  infoPill: {
+    backgroundColor: '#ba52ff31',
+  },
+  wordPill: {},
+  badgesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  badge: {
     flex: 1,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    paddingVertical: 8,
     alignItems: 'center',
   },
-  statValue: {
+  badgeValue: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
   },
-  statLabel: {
-    color: '#DDEEF0',
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 2,
+  badgeValueAlert: {
+    color: '#FFD86A',
   },
-  board: {
+  badgeLabel: {
+    color: '#E6D8FB',
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 2,
+    textTransform: 'uppercase',
+  },
+  badgeSeparator: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  wordContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  wordText: {
+    color: 'rgba(255,255,255,0.95)',
+    fontSize: 26,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  boardArea: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  boardShadowContainer: {
     position: 'relative',
-    borderRadius: 8,
+  },
+  gridFrame: {
+    ...StyleSheet.absoluteFill,
+    margin: -7,
+    backgroundColor: '#DECCF8',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#B99DEF',
+    shadowColor: '#2D126D',
+    shadowOpacity: 0.3,
+    shadowOffset: {width: 0, height: 6},
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  gridContainer: {
+    ...StyleSheet.absoluteFill,
     overflow: 'hidden',
-    backgroundColor: 'rgba(13, 27, 42, 0.58)',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.24)',
+    borderRadius: 18,
+    borderWidth: 1,
+    backgroundColor: '#d4c4ea',
+    borderColor: '#cdb8eb',
+    shadowColor: '#410747',
+    shadowOpacity: 0.3,
+    shadowOffset: {width: 0, height: 6},
+    shadowRadius: 10,
+    elevation: 5,
   },
   tileWrap: {
     position: 'absolute',
-    padding: 3,
+    padding: 1.5,
   },
   tile: {
     flex: 1,
-    borderRadius: 8,
+    borderRadius: 2,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F7F1DF',
-    borderWidth: 2,
-    borderColor: '#A9C6B8',
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 3,
-    shadowOffset: {width: 0, height: 2},
-    elevation: 2,
+    backgroundColor: '#F7F1F9',
+    borderTopWidth: 2,
+    borderBottomWidth: 1,
+    borderTopColor: '#FBF8FE',
+    borderBottomColor: '#EEE3F9',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderLeftColor: '#FBF8FE',
+    borderRightColor: '#EEE3F9',
   },
-  tileSelected: {
-    backgroundColor: '#FDD56A',
-    borderColor: '#FFFFFF',
-  },
-  tileValid: {
-    backgroundColor: '#6FE6A8',
+  tileFill: {
+    ...StyleSheet.absoluteFill,
   },
   tileHidden: {
     opacity: 0,
   },
-  tilePressed: {
-    transform: [{scale: 0.96}],
-  },
   tileLetter: {
-    color: '#182B38',
+    color: '#3a1e74',
     fontSize: 22,
     fontWeight: '900',
-  },
-  selectedPanel: {
-    width: '100%',
-    maxWidth: 380,
-    minHeight: 70,
-    marginTop: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  panelLabel: {
-    color: '#DDEEF0',
-    fontSize: 12,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  selectedWord: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: '900',
-    marginTop: 4,
-  },
-  clearButton: {
-    minWidth: 86,
-    borderRadius: 8,
-    backgroundColor: '#123C4D',
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  clearButtonDisabled: {
-    opacity: 0.35,
   },
   clearButtonPressed: {
     opacity: 0.86,
     transform: [{scale: 0.98}],
   },
-  clearButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  injectedText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  miniStatsRow: {
-    width: '100%',
-    maxWidth: 380,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginTop: 8,
-  },
   wordsPanel: {
     width: '100%',
-    maxWidth: 380,
+    maxWidth: 440,
     flex: 1,
-    minHeight: 110,
+    minHeight: 96,
     marginTop: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
     padding: 12,
   },
   wordsHeader: {
@@ -855,11 +1122,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
   },
+  panelLabel: {
+    color: '#E6D8FB',
+    fontSize: 13,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   hintButton: {
-    borderRadius: 8,
-    backgroundColor: '#123C4D',
-    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: '#A44DF6',
+    borderWidth: 2,
+    borderColor: '#B96EFA',
+    paddingHorizontal: 14,
     paddingVertical: 7,
+  },
+  hintButtonDisabled: {
+    opacity: 0.35,
   },
   hintButtonText: {
     color: '#FFFFFF',
@@ -869,25 +1148,154 @@ const styles = StyleSheet.create({
   wordsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
-    paddingTop: 10,
+    gap: 8,
+    paddingTop: 12,
     paddingBottom: 4,
   },
+  wordsEmpty: {
+    color: '#E6D8FB',
+    fontSize: 13,
+    fontWeight: '700',
+    paddingTop: 12,
+  },
   wordChip: {
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingHorizontal: 9,
-    paddingVertical: 5,
+    borderRadius: 12,
+    backgroundColor: '#F7F1F9',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   wordChipSelected: {
-    backgroundColor: '#6FE6A8',
+    backgroundColor: '#C7F5DD',
   },
   wordChipPressed: {
     opacity: 0.85,
+    transform: [{scale: 0.97}],
   },
   wordChipText: {
-    color: '#17344A',
+    color: '#3a1e74',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  readyOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(58,30,116,0.2)',
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  readyGrid: {
+    ...StyleSheet.absoluteFill,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    bottom: 100 + Banner.height,
+  },
+  readyText: {
+    color: '#FFFFFF',
+    fontSize: 48,
+    fontWeight: '900',
+    textShadowColor: 'rgba(58,30,116,0.55)',
+    textShadowOffset: {width: 0, height: 4},
+    textShadowRadius: 10,
+    overflow: 'visible',
+    padding: 10,
+  },
+  summaryBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(32,12,74,0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  summaryDialog: {
+    width: '100%',
+    maxWidth: 390,
+    maxHeight: '82%',
+    borderRadius: 8,
+    backgroundColor: '#F8F1FF',
+    padding: 16,
+  },
+  summaryTitle: {
+    color: '#3a1e74',
+    fontSize: 24,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  summaryStatsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+  },
+  summaryStat: {
+    flex: 1,
+    borderRadius: 8,
+    backgroundColor: '#E9DAFB',
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  summaryValue: {
+    color: '#3a1e74',
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  summaryLabel: {
+    color: '#6A4AA4',
+    fontSize: 11,
+    fontWeight: '900',
+    marginTop: 2,
+    textTransform: 'uppercase',
+  },
+  summaryList: {
+    marginTop: 12,
+  },
+  summaryListContent: {
+    gap: 8,
+    paddingBottom: 2,
+  },
+  waveSummaryRow: {
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    padding: 10,
+  },
+  waveSummaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  waveSummaryTitle: {
+    color: '#3a1e74',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  waveSummaryScore: {
+    color: '#6F54FB',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  waveSummaryWords: {
+    color: '#543B82',
     fontSize: 12,
+    fontWeight: '700',
+    marginTop: 5,
+  },
+  summaryActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  summaryButton: {
+    flex: 1,
+    borderRadius: 8,
+    backgroundColor: '#6F54FB',
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  summaryButtonSecondary: {
+    backgroundColor: '#9D7ED7',
+  },
+  summaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '900',
   },
 });
