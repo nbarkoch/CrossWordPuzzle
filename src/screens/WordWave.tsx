@@ -73,6 +73,7 @@ const tileSpringConfig = {
 };
 const TILE_SPAWN_COLUMN_DELAY_MS = 16;
 const TILE_SPAWN_STACK_DELAY_MS = 42;
+const WORD_WAVE_PENDING_DROP_PENALTY = 2;
 
 const getNewTileSpawnPositions = (
   previousBoard: WordWaveBoard,
@@ -250,7 +251,10 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   const [hintIndex, setHintIndex] = useState(0);
   const [isResolving, setIsResolving] = useState(false);
   const [hiddenTileIds, setHiddenTileIds] = useState<Set<string>>(new Set());
+  const [pendingRowDrop, setPendingRowDrop] = useState(false);
   const isResolvingRef = useRef(false);
+  const isDraggingRef = useRef(false);
+  const pendingRowDropRef = useRef(false);
   const dropSecondsLeftRef = useRef(WORD_WAVE_ROW_DROP_SECONDS);
   const resolveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectionRef = useRef<WordWavePosition[]>([]);
@@ -299,6 +303,31 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     [board],
   );
 
+  const applyPendingRowDrop = useCallback(() => {
+    pendingRowDropRef.current = false;
+    setPendingRowDrop(false);
+    dropSecondsLeftRef.current = WORD_WAVE_ROW_DROP_SECONDS;
+    setDropSecondsLeft(WORD_WAVE_ROW_DROP_SECONDS);
+    setHiddenTileIds(new Set());
+    setBoard(currentBoard => {
+      const nextBoard = applyWordWaveTimedRowDrop(currentBoard);
+      newTileSpawnPositionsRef.current = getNewTileSpawnPositions(
+        currentBoard,
+        nextBoard,
+      );
+      return nextBoard;
+    });
+    setRowDrops(count => count + 1);
+  }, []);
+
+  const armPendingRowDrop = useCallback(() => {
+    pendingRowDropRef.current = true;
+    setPendingRowDrop(true);
+    dropSecondsLeftRef.current = 0;
+    setDropSecondsLeft(0);
+    setPressureScore(score => score - WORD_WAVE_SIZE);
+  }, []);
+
   useEffect(() => {
     isResolvingRef.current = isResolving;
   }, [isResolving]);
@@ -306,6 +335,16 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   useEffect(() => {
     const timer = setInterval(() => {
       if (isResolvingRef.current) {
+        return;
+      }
+
+      if (pendingRowDropRef.current) {
+        if (isDraggingRef.current) {
+          setPressureScore(score => score - WORD_WAVE_PENDING_DROP_PENALTY);
+          return;
+        }
+
+        applyPendingRowDrop();
         return;
       }
 
@@ -317,25 +356,19 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
         return;
       }
 
-      dropSecondsLeftRef.current = WORD_WAVE_ROW_DROP_SECONDS;
-      setDropSecondsLeft(WORD_WAVE_ROW_DROP_SECONDS);
-      setHiddenTileIds(new Set());
-      setBoard(currentBoard => {
-        const nextBoard = applyWordWaveTimedRowDrop(currentBoard);
-        newTileSpawnPositionsRef.current = getNewTileSpawnPositions(
-          currentBoard,
-          nextBoard,
-        );
-        return nextBoard;
-      });
+      if (isDraggingRef.current) {
+        armPendingRowDrop();
+        return;
+      }
+
+      applyPendingRowDrop();
       setPressureScore(score => score - WORD_WAVE_SIZE);
-      setRowDrops(count => count + 1);
     }, 1000);
 
     return () => {
       clearInterval(timer);
     };
-  }, []);
+  }, [applyPendingRowDrop, armPendingRowDrop]);
 
   useEffect(
     () => () => {
@@ -383,6 +416,10 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
         setHintIndex(0);
         isResolvingRef.current = false;
         setIsResolving(false);
+
+        if (pendingRowDropRef.current) {
+          requestAnimationFrame(applyPendingRowDrop);
+        }
       }, 16);
     });
   };
@@ -422,12 +459,19 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
       return;
     }
 
+    isDraggingRef.current = false;
     const move = getMoveForPath(board, selectionRef.current);
 
     if (move && !isResolving) {
       resolveWordSelection();
     } else {
       startPositionRef.current = null;
+      selectionRef.current = [];
+      setSelection([]);
+
+      if (pendingRowDropRef.current) {
+        applyPendingRowDrop();
+      }
     }
   };
 
@@ -466,7 +510,9 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
         style={styles.content}>
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{dropSecondsLeft}</Text>
+            <Text style={styles.statValue}>
+              {pendingRowDrop ? 'DROP' : dropSecondsLeft}
+            </Text>
             <Text style={styles.statLabel}>Drop</Text>
           </View>
           <View style={styles.stat}>
@@ -489,6 +535,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
 
             const position = getPositionFromTouch(event);
 
+            isDraggingRef.current = Boolean(position);
             startPositionRef.current = position;
             setSelectionPath(position ? [position] : []);
           }}
