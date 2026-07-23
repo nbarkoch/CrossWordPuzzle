@@ -11,6 +11,7 @@ import {
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
@@ -47,7 +48,12 @@ type TileProps = {
   selected: boolean;
   valid: boolean;
   hidden: boolean;
-  startPosition?: WordWavePosition;
+  spawnState?: WordWaveTileSpawnState;
+};
+
+type WordWaveTileSpawnState = {
+  startPosition: WordWavePosition;
+  delayMs: number;
 };
 
 const WORD_WAVE_ROW_DROP_SECONDS = 10;
@@ -56,6 +62,8 @@ const tileSpringConfig = {
   damping: 14,
   stiffness: 120,
 };
+const TILE_SPAWN_COLUMN_DELAY_MS = 16;
+const TILE_SPAWN_STACK_DELAY_MS = 42;
 
 const getNewTileSpawnPositions = (
   previousBoard: WordWaveBoard,
@@ -81,17 +89,24 @@ const getNewTileSpawnPositions = (
     });
   });
 
-  const spawnPositions = new Map<string, WordWavePosition>();
+  const spawnPositions = new Map<string, WordWaveTileSpawnState>();
 
   newTilesByColumn.forEach(columnTiles => {
     const spawnDistance = columnTiles.length;
 
     columnTiles
       .sort((a, b) => a.row - b.row)
-      .forEach(({tile, row, col}) => {
+      .forEach(({tile, row, col}, index) => {
+        const bottomToTopIndex = columnTiles.length - 1 - index;
+
         spawnPositions.set(tile.id, {
-          row: row - spawnDistance,
-          col,
+          startPosition: {
+            row: row - spawnDistance,
+            col,
+          },
+          delayMs:
+            col * TILE_SPAWN_COLUMN_DELAY_MS +
+            bottomToTopIndex * TILE_SPAWN_STACK_DELAY_MS,
         });
       });
   });
@@ -107,8 +122,9 @@ const Tile: React.FC<TileProps> = ({
   selected,
   valid,
   hidden,
-  startPosition,
+  spawnState,
 }) => {
+  const startPosition = spawnState?.startPosition;
   const spawnTranslateY = useSharedValue(
     startPosition ? (startPosition.row - row) * cellSize : 0,
   );
@@ -138,8 +154,18 @@ const Tile: React.FC<TileProps> = ({
     }
 
     spawnTranslateY.value = (startPosition.row - row) * cellSize;
-    spawnTranslateY.value = withSpring(0, tileSpringConfig);
-  }, [cellSize, row, spawnTranslateY, startPosition, startPosition?.row]);
+    spawnTranslateY.value = withDelay(
+      spawnState.delayMs,
+      withSpring(0, tileSpringConfig),
+    );
+  }, [
+    cellSize,
+    row,
+    spawnState?.delayMs,
+    spawnTranslateY,
+    startPosition,
+    startPosition?.row,
+  ]);
 
   useEffect(() => {
     letterTranslateX.value = cellSize * 0.28;
@@ -200,7 +226,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   const resolveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectionRef = useRef<WordWavePosition[]>([]);
   const startPositionRef = useRef<WordWavePosition | null>(null);
-  const newTileSpawnPositionsRef = useRef<Map<string, WordWavePosition>>(
+  const newTileSpawnPositionsRef = useRef<Map<string, WordWaveTileSpawnState>>(
     new Map(),
   );
   const {width} = useWindowDimensions();
@@ -444,7 +470,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
                   selected={selected}
                   valid={selected && Boolean(selectedMove)}
                   hidden={hidden}
-                  startPosition={newTileSpawnPositionsRef.current.get(tile.id)}
+                  spawnState={newTileSpawnPositionsRef.current.get(tile.id)}
                 />
               );
             })}
