@@ -114,8 +114,8 @@ const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
       <Animated.View entering={FadeIn} style={styles.decorCircle} />
       <Animated.View entering={FadeInDown.delay(200)} style={styles.content}>
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>Word Search</Text>
-          <Text style={styles.subtitle}>Challenge Your Mind</Text>
+          <Text style={styles.title}>Word Wave</Text>
+          <Text style={styles.subtitle}>Word Search Puzzle</Text>
         </View>
 
         <View style={styles.modesContainer}>
@@ -185,7 +185,7 @@ const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
             <LinearGradient
               colors={['#8B5CF6', '#7C3AED']}
               style={styles.modeGradient}>
-              <Text style={styles.modeTitle}>Word Wave</Text>
+              <Text style={styles.modeTitle}>Wave Puzzle</Text>
               <Text style={styles.modeDescription}>Find falling word sets</Text>
             </LinearGradient>
           </Pressable>

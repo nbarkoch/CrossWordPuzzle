@@ -8,7 +8,7 @@ import {
   Modal,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Animated, {BounceIn, FadeInDown} from 'react-native-reanimated';
+import Animated, {FadeInDown, ZoomIn} from 'react-native-reanimated';
 import {CATEGORIES_ICONS} from '~/utils/consts';
 import {CategorySelection, GridSize} from '~/utils/types';
 
@@ -46,7 +46,9 @@ const ContinueGameDialog: React.FC<ContinueGameDialogProps> = ({
         style={styles.modalOverlay}
         activeOpacity={1}
         onPress={onClose}>
-        <Animated.View entering={BounceIn} style={styles.dialogContainer}>
+        <Animated.View
+          entering={ZoomIn.springify().damping(14).stiffness(160).mass(0.7)}
+          style={styles.dialogContainer}>
           <TouchableOpacity activeOpacity={1}>
             <LinearGradient
               colors={['#994CFD', '#6F54FB']}
