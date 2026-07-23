@@ -2,6 +2,7 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   FlatList,
   GestureResponderEvent,
+  InteractionManager,
   Modal,
   Pressable,
   ScrollView,
@@ -24,6 +25,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 import NavigationBar from '~/components/NavigationBar';
+import LoadingAnimation from '~/components/LoadingAnimation';
 import WordWaveSelectionLine from '~/components/WordWaveSelectionLine';
 import {RootStackParamList} from './Navigation';
 import {
@@ -235,6 +237,16 @@ const Tile: React.FC<TileProps> = ({
   ]);
 
   useEffect(() => {
+    // Only tiles that spawn during play (they carry a spawn state and fall in
+    // from above) slide their letter in. The initial board reveal and "Play
+    // Again" have no spawn state, so show the letters immediately instead of
+    // replaying a whole-board slide-in the moment the loading screen clears.
+    if (!startPosition) {
+      letterTranslateX.value = 0;
+      letterOpacity.value = 1;
+      return;
+    }
+
     letterTranslateX.value = cellSize * 0.28;
     letterOpacity.value = 0;
     letterTranslateX.value = withSpring(0, {
@@ -243,7 +255,7 @@ const Tile: React.FC<TileProps> = ({
       stiffness: 150,
     });
     letterOpacity.value = withTiming(1, {duration: 140});
-  }, [cellSize, letterOpacity, letterTranslateX, tile.letter]);
+  }, [cellSize, letterOpacity, letterTranslateX, startPosition, tile.letter]);
 
   return (
     <Animated.View
@@ -275,9 +287,9 @@ const Tile: React.FC<TileProps> = ({
 };
 
 const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
-  const [board, setBoard] = useState<WordWaveBoard>(() =>
-    createWordWaveBoard(),
-  );
+  const [board, setBoard] = useState<WordWaveBoard>([]);
+  const [isBoardLoading, setIsBoardLoading] = useState(true);
+  const [generationKey, setGenerationKey] = useState(0);
   const [selection, setSelection] = useState<WordWavePosition[]>([]);
   const [dropSecondsLeft, setDropSecondsLeft] = useState(
     WORD_WAVE_ROW_DROP_SECONDS,
@@ -318,7 +330,41 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     transform: [{scale: readyScale.value}],
   }));
 
-  const moves = useMemo(() => findWordWaveMoves(board), [board]);
+  // Building a board runs the scoring search dozens of times, which blocks the
+  // JS thread long enough to make the screen feel frozen if it happens during
+  // the navigation transition. Defer it until interactions settle and show a
+  // loading spinner, mirroring the word search loading screen.
+  useEffect(() => {
+    let cancelled = false;
+
+    setIsBoardLoading(true);
+
+    const interaction = InteractionManager.runAfterInteractions(() => {
+      if (cancelled) {
+        return;
+      }
+
+      const nextBoard = createWordWaveBoard();
+
+      if (cancelled) {
+        return;
+      }
+
+      newTileSpawnPositionsRef.current = new Map();
+      setBoard(nextBoard);
+      setIsBoardLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+      interaction.cancel();
+    };
+  }, [generationKey]);
+
+  const moves = useMemo(
+    () => (board.length > 0 ? findWordWaveMoves(board) : []),
+    [board],
+  );
   const selectedWord = useMemo(
     () => getWordFromPath(board, selection),
     [board, selection],
@@ -374,7 +420,10 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   );
 
   useEffect(() => {
-    if (runState !== 'ready') {
+    // Wait for the board to finish loading, otherwise the very first "Ready"
+    // spring runs while the overlay is still hidden behind the loading spinner
+    // and lands at its end scale — so it would just pop in instead of springing.
+    if (runState !== 'ready' || isBoardLoading) {
       readyOpacity.value = withTiming(0, {duration: 120});
       return;
     }
@@ -386,7 +435,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
       damping: 8,
       stiffness: 110,
     });
-  }, [readyOpacity, readyScale, readyStepIndex, runState]);
+  }, [readyOpacity, readyScale, readyStepIndex, runState, isBoardLoading]);
 
   const endRun = useCallback(() => {
     runStateRef.current = 'ended';
@@ -400,8 +449,6 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   }, []);
 
   const resetRun = useCallback(() => {
-    const nextBoard = createWordWaveBoard();
-
     runStateRef.current = 'ready';
     currentWaveRef.current = 1;
     pendingRowDropRef.current = false;
@@ -412,7 +459,11 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     selectionRef.current = [];
     newTileSpawnPositionsRef.current = new Map();
 
-    setBoard(nextBoard);
+    // Rebuild the board off the interaction thread (see the generation effect)
+    // so "Play Again" shows the loading spinner instead of freezing.
+    setBoard([]);
+    setIsBoardLoading(true);
+    setGenerationKey(key => key + 1);
     setSelection([]);
     setDropSecondsLeft(WORD_WAVE_ROW_DROP_SECONDS);
     setRunState('ready');
@@ -497,7 +548,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   }, [currentWave]);
 
   useEffect(() => {
-    if (runState !== 'ready') {
+    if (runState !== 'ready' || isBoardLoading) {
       return;
     }
 
@@ -517,7 +568,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     return () => {
       clearInterval(readyTimer);
     };
-  }, [runState]);
+  }, [runState, isBoardLoading]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -835,6 +886,11 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
                 valid={Boolean(selectedMove)}
               />
             </View>
+            {isBoardLoading && (
+              <View style={styles.boardLoadingOverlay} pointerEvents="none">
+                <LoadingAnimation />
+              </View>
+            )}
           </View>
         </View>
 
@@ -875,18 +931,20 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
             )}
           </ScrollView>
         </View>
-        {runState === 'ready' && (
-          <Animated.View
-            pointerEvents="none"
-            entering={FadeIn}
-            exiting={FadeOut}
-            style={styles.readyOverlay}>
+        {runState === 'ready' && !isBoardLoading && (
+          <>
+            <Animated.View
+              pointerEvents="none"
+              entering={FadeIn}
+              exiting={FadeOut}
+              style={styles.readyOverlay}
+            />
             <Animated.View style={[styles.readyGrid, readyAnimatedStyle]}>
               <Text style={styles.readyText}>
                 {READY_STEPS[readyStepIndex]}
               </Text>
             </Animated.View>
-          </Animated.View>
+          </>
         )}
       </LinearGradient>
 
@@ -1068,6 +1126,11 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 6},
     shadowRadius: 10,
     elevation: 5,
+  },
+  boardLoadingOverlay: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: 18,
+    overflow: 'hidden',
   },
   tileWrap: {
     position: 'absolute',
