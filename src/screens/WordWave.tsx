@@ -167,10 +167,10 @@ const Tile: React.FC<TileProps> = ({
   }));
 
   useEffect(() => {
-    selectionScale.value = withSpring(selected ? 1.15 : 1, {
-      mass: 0.5,
-      damping: 12,
-      stiffness: 90,
+    selectionScale.value = withSpring(selected ? 1.05 : 1, {
+      mass: 0.3,
+      damping: 13,
+      stiffness: 260,
     });
   }, [selected, selectionScale]);
 
@@ -1075,7 +1075,7 @@ const styles = StyleSheet.create({
   },
   tile: {
     flex: 1,
-    borderRadius: 2,
+    borderRadius: 5,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1097,8 +1097,8 @@ const styles = StyleSheet.create({
   },
   tileLetter: {
     color: '#3a1e74',
-    fontSize: 22,
-    fontWeight: '900',
+    fontSize: 28,
+    fontWeight: '800',
   },
   clearButtonPressed: {
     opacity: 0.86,
@@ -1110,6 +1110,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 96,
     marginTop: 12,
+    marginBottom: Banner.height - 5,
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.14)',
     borderWidth: 1,
