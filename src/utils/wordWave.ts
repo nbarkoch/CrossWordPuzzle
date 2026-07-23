@@ -1,4 +1,4 @@
-import {wordsDictionary} from '~/data/english';
+import {WORD_WAVE_WORDS} from '~/data/wordWaveWords';
 
 export const WORD_WAVE_SIZE = 7;
 export const WORD_WAVE_MIN_WORD_LENGTH = 3;
@@ -27,6 +27,7 @@ export type WordWaveRefillResult = {
   moves: WordWaveMove[];
   attempts: number;
   injectedWord?: string;
+  repairedCount?: number;
 };
 
 export type WordWaveSurvivalReport = {
@@ -45,6 +46,69 @@ export type WordWaveCandidateSearchReport = {
   boardsChecked: number;
   survivedBoards: number;
   bestReport: WordWaveSurvivalReport;
+};
+
+export type WordWaveOpportunityReport = {
+  runs: number;
+  stepsPerRun: number;
+  successCount: number;
+  failureCount: number;
+  averageInitialScore: number;
+  averageFinalScore: number;
+  averageMinScore: number;
+  averageScoreRetention: number;
+  averageInitialOpportunities: number;
+  averageFinalOpportunities: number;
+  averageMinOpportunities: number;
+  averageFinalGoodCoverage: number;
+  averageMinGoodCoverage: number;
+  averageRepairs: number;
+  failures: Array<{
+    run: number;
+    step: number;
+    initialScore: number;
+    score: number;
+    minScore: number;
+    scoreRetention: number;
+    opportunities: number;
+    goodCoverage: number;
+    deepGarbage: number;
+  }>;
+};
+
+export type WordWaveTimedPlayerLevel = 'bad' | 'medium' | 'good';
+
+export type WordWaveTimedSimulationReport = {
+  seconds: number;
+  runsPerPlayer: number;
+  rowDropSeconds: number;
+  profiles: Array<{
+    level: WordWaveTimedPlayerLevel;
+    successCount: number;
+    failureCount: number;
+    averageInitialScore: number;
+    averageFinalScore: number;
+    averageMinScore: number;
+    averageScoreRetention: number;
+    averageWordsFound: number;
+    averageWordLength: number;
+    averageLongWordsFound: number;
+    averageRowDrops: number;
+    averageRepairSwitches: number;
+    averageLetterPressureScore: number;
+    averageArcadeScore: number;
+  }>;
+};
+
+export type WordWaveTimedWordResult = {
+  board: WordWaveBoard;
+  repairedCount: number;
+  pressureScore: number;
+  arcadeScore: number;
+};
+
+export type WordWaveTimedSelectionResult = WordWaveTimedWordResult & {
+  refillAttempts: number;
 };
 
 type BoardSlot = WordWaveTile | null;
@@ -83,14 +147,11 @@ const normalizeWord = (word: string) => word.replace(/[^a-z]/gi, '').toUpperCase
 
 const WORD_BANK = Array.from(
   new Set(
-    Object.values(wordsDictionary)
-      .flat()
-      .map(normalizeWord)
-      .filter(
-        word =>
-          word.length >= WORD_WAVE_MIN_WORD_LENGTH &&
-          word.length <= WORD_WAVE_SIZE,
-      ),
+    WORD_WAVE_WORDS.map(normalizeWord).filter(
+      word =>
+        word.length >= WORD_WAVE_MIN_WORD_LENGTH &&
+        word.length <= WORD_WAVE_SIZE,
+    ),
   ),
 );
 
@@ -337,16 +398,23 @@ const createSeededBoard = () => {
     Array.from({length: WORD_WAVE_SIZE}, () => null),
   );
   let placed = 0;
+  let attempts = 0;
 
-  shuffle([...SEED_WORDS].sort((a, b) => b.length - a.length)).forEach(word => {
-    if (placed >= 14) {
-      return;
+  // SEED_WORDS can hold tens of thousands of entries, so iterate a shuffled
+  // stream and stop as soon as the board is seeded (or we've tried enough
+  // candidates). Without the caps, a full board turns every remaining word into
+  // a failing full-board placement search and board creation grinds to a halt.
+  for (const word of shuffle(SEED_WORDS)) {
+    if (placed >= 14 || attempts >= 300) {
+      break;
     }
+
+    attempts += 1;
 
     if (tryPlaceWordAnywhere(slots, word)) {
       placed += 1;
     }
-  });
+  }
 
   return fillRandomSlots(slots);
 };
@@ -819,6 +887,33 @@ const summarizeBoard = (board: WordWaveBoard) => {
   };
 };
 
+const summarizeOpportunities = (board: WordWaveBoard) => {
+  const boardQuality = scoreWordWaveBoard(board);
+  const moves = getUniqueMovesByWord(findWordWaveMoves(board));
+  const goodMoves = moves.filter(move => move.word.length >= 4);
+  const qualityMoves = moves.filter(
+    move =>
+      move.word.length >= 5 &&
+      move.path.some(position => position.row >= 3),
+  );
+  const coverage = getMoveCoverage(moves);
+  const directionCount = new Set(
+    moves.map(move => directionKey(move.direction)),
+  ).size;
+
+  return {
+    moves,
+    score: boardQuality.score,
+    healthScore: getStaticRefillForecastScore({board, quality: boardQuality}),
+    opportunities: moves.length,
+    goodOpportunities: goodMoves.length,
+    qualityOpportunities: qualityMoves.length,
+    goodCoverage: coverage.goodCoveredCells,
+    deepGarbage: coverage.deepGarbageCells,
+    directionCount,
+  };
+};
+
 const isBoardQualityPlayable = (quality: ReturnType<typeof scoreWordWaveBoard>) =>
   quality.uniqueWords >= 10 &&
   quality.longWords >= 3 &&
@@ -867,6 +962,19 @@ const fillRandomSlots = (slots: BoardSlots): WordWaveBoard =>
 
 const cloneSlots = (slots: BoardSlots): BoardSlots =>
   slots.map(row => [...row]);
+
+const cloneBoardWithTile = (
+  board: WordWaveBoard,
+  position: WordWavePosition,
+  letter: string,
+) =>
+  board.map((row, rowIndex) =>
+    row.map((tile, colIndex) =>
+      rowIndex === position.row && colIndex === position.col
+        ? {...tile, letter}
+        : tile,
+    ),
+  );
 
 const getFreshPositions = (slots: BoardSlots) => {
   const freshPositions = new Set<string>();
@@ -1218,6 +1326,219 @@ const isCoverageRescueNeeded = (candidate: ScoredWordWaveCandidate) =>
   candidate.quality.sameClearedLaneMoves >
     Math.max(3, Math.floor(Math.max(1, candidate.quality.uniqueWords) * 0.35));
 
+const getRepairPositions = (board: WordWaveBoard) => {
+  const moves = getUniqueMovesByWord(findWordWaveMoves(board));
+  const goodCoveredCells = new Set<string>();
+  const longCoveredCells = new Set<string>();
+
+  moves.forEach(move => {
+    move.path.forEach(position => {
+      if (move.word.length >= 4) {
+        goodCoveredCells.add(positionKey(position));
+      }
+
+      if (move.word.length >= 5) {
+        longCoveredCells.add(positionKey(position));
+      }
+    });
+  });
+
+  return Array.from({length: WORD_WAVE_SIZE}, (_, row) =>
+    Array.from({length: WORD_WAVE_SIZE}, (__, col) => ({row, col})),
+  )
+    .flat()
+    .map(position => {
+      const key = positionKey(position);
+      const deepWeight = position.row >= 3 ? 4 : position.row >= 2 ? 2 : 0;
+      const goodPenalty = goodCoveredCells.has(key) ? 0 : 8;
+      const longPenalty = longCoveredCells.has(key) ? 0 : 3;
+
+      return {
+        position,
+        score: deepWeight + goodPenalty + longPenalty,
+      };
+    })
+    .filter(item => item.score > 0 && item.position.row >= 1)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 12)
+    .map(item => item.position);
+};
+
+const REPAIR_LETTERS = Array.from(new Set(LETTER_BAG.split('')));
+
+const getLongWordRepairLetters = (
+  board: WordWaveBoard,
+  position: WordWavePosition,
+) => {
+  const letters = new Map<string, number>();
+
+  for (const direction of WORD_WAVE_DIRECTIONS) {
+    for (
+      let length = WORD_WAVE_SIZE;
+      length >= Math.max(5, WORD_WAVE_PLANNED_MIN_WORD_LENGTH);
+      length -= 1
+    ) {
+      for (let index = 0; index < length; index += 1) {
+        const startRow = position.row - direction.dy * index;
+        const startCol = position.col - direction.dx * index;
+        const path = getPathForWordPlacement(
+          startRow,
+          startCol,
+          direction,
+          'A'.repeat(length),
+        );
+
+        if (!path) {
+          continue;
+        }
+
+        for (const word of WORDS_BY_LENGTH.get(length) ?? []) {
+          if (
+            path.every((pathPosition, pathIndex) => {
+              const tile = board[pathPosition.row][pathPosition.col];
+
+              return (
+                positionsEqual(pathPosition, position) ||
+                tile.letter === word[pathIndex]
+              );
+            })
+          ) {
+            const letter = word[index];
+            const directionBonus = isDiagonalDirection(direction) ? 10 : 6;
+            const deepBonus = position.row >= 3 ? 8 : 0;
+
+            letters.set(
+              letter,
+              (letters.get(letter) ?? 0) +
+                length * length +
+                directionBonus +
+                deepBonus,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  return [...letters.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([letter]) => letter)
+    .slice(0, 10);
+};
+
+const getNewRepairMoves = (
+  previousBoard: WordWaveBoard,
+  candidateBoard: WordWaveBoard,
+) => {
+  const previousWords = new Set(findWordWaveMoves(previousBoard).map(move => move.word));
+
+  return getUniqueMovesByWord(findWordWaveMoves(candidateBoard)).filter(
+    move => !previousWords.has(move.word),
+  );
+};
+
+const getRepairBuiltWordPenalty = (
+  previousBoard: WordWaveBoard,
+  candidateBoard: WordWaveBoard,
+  repairedPositions: Set<string>,
+) =>
+  getNewRepairMoves(previousBoard, candidateBoard).reduce((penalty, move) => {
+    const repairedOverlap = move.path.filter(position =>
+      repairedPositions.has(positionKey(position)),
+    ).length;
+
+    if (repairedOverlap === 0) {
+      return penalty;
+    }
+
+    if (move.word.length <= 4 && repairedOverlap >= 2) {
+      return penalty + 90000;
+    }
+
+    if (repairedOverlap / move.path.length >= 0.45) {
+      return penalty + 70000;
+    }
+
+    return penalty + repairedOverlap * repairedOverlap * 2200;
+  }, 0);
+
+const repairWordWaveBoard = (
+  board: WordWaveBoard,
+  context: WordWaveScoreContext,
+  maxRepairs = 3,
+) => {
+  let repairedBoard = board;
+  let repairedQuality = scoreWordWaveBoard(repairedBoard, context);
+  let repairedCount = 0;
+  const repairedPositions = new Set<string>();
+
+  for (let repairIndex = 0; repairIndex < maxRepairs; repairIndex += 1) {
+    let bestBoard = repairedBoard;
+    let bestQuality = repairedQuality;
+    let bestScore = getStaticRefillForecastScore({
+      board: bestBoard,
+      quality: bestQuality,
+    });
+    let bestPosition: WordWavePosition | undefined;
+
+    for (const position of getRepairPositions(repairedBoard).slice(0, 8)) {
+      const currentLetter = repairedBoard[position.row][position.col].letter;
+      const candidateRepairPositions = new Set(repairedPositions);
+
+      candidateRepairPositions.add(positionKey(position));
+      const candidateLetters = [
+        ...getLongWordRepairLetters(repairedBoard, position),
+        ...REPAIR_LETTERS,
+      ];
+      const triedLetters = new Set<string>();
+
+      for (const letter of candidateLetters) {
+        if (letter === currentLetter || triedLetters.has(letter)) {
+          continue;
+        }
+
+        triedLetters.add(letter);
+        const candidateBoard = cloneBoardWithTile(repairedBoard, position, letter);
+        const candidateQuality = scoreWordWaveBoard(candidateBoard, context);
+        const candidateScore =
+          getStaticRefillForecastScore({
+            board: candidateBoard,
+            quality: candidateQuality,
+          }) -
+          getRepairBuiltWordPenalty(
+            board,
+            candidateBoard,
+            candidateRepairPositions,
+          );
+
+        if (candidateScore > bestScore) {
+          bestBoard = candidateBoard;
+          bestQuality = candidateQuality;
+          bestScore = candidateScore;
+          bestPosition = position;
+        }
+      }
+    }
+
+    if (bestBoard === repairedBoard) {
+      break;
+    }
+
+    repairedBoard = bestBoard;
+    repairedQuality = bestQuality;
+    if (bestPosition) {
+      repairedPositions.add(positionKey(bestPosition));
+    }
+    repairedCount += 1;
+  }
+
+  return {
+    board: repairedBoard,
+    quality: repairedQuality,
+    repairedCount,
+  };
+};
+
 export const refillWordWaveBoard = (
   board: WordWaveBoard,
   removedPath: WordWavePosition[],
@@ -1284,16 +1605,28 @@ export const refillWordWaveBoard = (
     return refillWordWaveBoard(board, removedPath, minAcceptedMoves, 160);
   }
 
+  const shouldRepair =
+    bestQuality.goodCoveredCells < 34 ||
+    bestQuality.deepGarbageCells > 9 ||
+    bestQuality.directionCount < 5 ||
+    bestQuality.longWords < 5;
+  const repairResult = shouldRepair
+    ? repairWordWaveBoard(bestBoard, scoreContext)
+    : {board: bestBoard, quality: bestQuality, repairedCount: 0};
+  bestBoard = repairResult.board;
+  bestQuality = repairResult.quality;
+
   if (
     injectedWords.length > 0 &&
     forecastBest.board === injectedBoard &&
-    (isBoardQualityPlayable(injectedQuality) || !isBoardQualityPlayable(bestQuality))
+    (isBoardQualityPlayable(bestQuality) || !isBoardQualityPlayable(injectedQuality))
   ) {
     return {
-      board: injectedBoard,
-      moves: injectedQuality.moves,
+      board: bestBoard,
+      moves: bestQuality.moves,
       attempts: candidateAttempts + 1,
       injectedWord: injectedWords.join(', ') || undefined,
+      repairedCount: repairResult.repairedCount,
     };
   }
 
@@ -1301,6 +1634,32 @@ export const refillWordWaveBoard = (
     board: bestBoard,
     moves: bestQuality.moves,
     attempts: candidateAttempts + 2,
+    repairedCount: repairResult.repairedCount,
+  };
+};
+
+const refillWordWaveBoardFast = (
+  board: WordWaveBoard,
+  removedPath: WordWavePosition[],
+): WordWaveRefillResult => {
+  const collapsedSlots = createCollapsedSlots(board, removedPath);
+  const scoreContext = getRefillScoreContext(collapsedSlots, removedPath);
+  const injectionOptions = getSmartInjectionOptions(
+    collapsedSlots,
+    scoreContext,
+    18,
+  );
+  const slots =
+    injectionOptions.length > 0
+      ? createSmartCandidateSlots(collapsedSlots, injectionOptions, 3)
+      : cloneSlots(collapsedSlots);
+  const nextBoard = fillRandomSlots(slots);
+
+  return {
+    board: nextBoard,
+    moves: findWordWaveMoves(nextBoard),
+    attempts: 1,
+    repairedCount: 0,
   };
 };
 
@@ -1440,6 +1799,477 @@ export const searchWordWaveSurvivalCandidate = (
     boardsChecked: boardsToTry,
     survivedBoards,
     bestReport,
+  };
+};
+
+const pickSimulationMove = (moves: WordWaveMove[]) => {
+  const rankedMoves = getUniqueMovesByWord(moves)
+    .filter(move => move.word.length >= 4)
+    .sort(
+      (a, b) =>
+        getWordWaveMoveScore(b) - getWordWaveMoveScore(a) ||
+        b.word.length - a.word.length ||
+        a.word.localeCompare(b.word),
+    );
+
+  if (rankedMoves.length === 0) {
+    return getUniqueMovesByWord(moves)[0];
+  }
+
+  const pickLimit = Math.min(8, rankedMoves.length);
+  return rankedMoves[Math.floor(Math.random() * pickLimit)];
+};
+
+export const simulateWordWaveOpportunityHealth = (
+  grids = 6,
+  runsPerGrid = 5,
+  stepsPerRun = 100,
+): WordWaveOpportunityReport => {
+  const failures: WordWaveOpportunityReport['failures'] = [];
+  let successCount = 0;
+  let failureCount = 0;
+  let totalInitialScore = 0;
+  let totalFinalScore = 0;
+  let totalMinScore = 0;
+  let totalScoreRetention = 0;
+  let totalInitialOpportunities = 0;
+  let totalFinalOpportunities = 0;
+  let totalMinOpportunities = 0;
+  let totalFinalGoodCoverage = 0;
+  let totalMinGoodCoverage = 0;
+  let totalRepairs = 0;
+  const totalRuns = grids * runsPerGrid;
+
+  for (let gridIndex = 0; gridIndex < grids; gridIndex += 1) {
+    const initialBoard = createWordWaveBoard();
+
+    for (let runIndex = 0; runIndex < runsPerGrid; runIndex += 1) {
+      let board = initialBoard;
+      const firstSummary = summarizeOpportunities(board);
+      let minScore = firstSummary.healthScore;
+      let minOpportunities = firstSummary.opportunities;
+      let minGoodCoverage = firstSummary.goodCoverage;
+      let finalSummary = firstSummary;
+      let failedAtStep = -1;
+
+      totalInitialScore += firstSummary.healthScore;
+      totalInitialOpportunities += firstSummary.opportunities;
+
+      for (let step = 0; step < stepsPerRun; step += 1) {
+        const move = pickSimulationMove(finalSummary.moves);
+
+        if (!move) {
+          failedAtStep = step;
+          break;
+        }
+
+        const refill = refillWordWaveBoard(board, move.path);
+        board = refill.board;
+        totalRepairs += refill.repairedCount ?? 0;
+        finalSummary = summarizeOpportunities(board);
+        minScore = Math.min(minScore, finalSummary.healthScore);
+        minOpportunities = Math.min(
+          minOpportunities,
+          finalSummary.opportunities,
+        );
+        minGoodCoverage = Math.min(minGoodCoverage, finalSummary.goodCoverage);
+
+        if (
+          finalSummary.healthScore <
+            firstSummary.healthScore -
+              Math.max(1800, Math.abs(firstSummary.healthScore) * 0.45) ||
+          finalSummary.goodCoverage < 16
+        ) {
+          failedAtStep = step + 1;
+          break;
+        }
+      }
+
+      const scoreRetention =
+        finalSummary.healthScore / Math.max(1, firstSummary.healthScore);
+      totalFinalScore += finalSummary.healthScore;
+      totalMinScore += minScore;
+      totalScoreRetention += scoreRetention;
+      totalFinalOpportunities += finalSummary.opportunities;
+      totalMinOpportunities += minOpportunities;
+      totalFinalGoodCoverage += finalSummary.goodCoverage;
+      totalMinGoodCoverage += minGoodCoverage;
+
+      if (failedAtStep >= 0) {
+        failureCount += 1;
+        failures.push({
+          run: gridIndex * runsPerGrid + runIndex,
+          step: failedAtStep,
+          initialScore: firstSummary.healthScore,
+          score: finalSummary.healthScore,
+          minScore,
+          scoreRetention,
+          opportunities: finalSummary.opportunities,
+          goodCoverage: finalSummary.goodCoverage,
+          deepGarbage: finalSummary.deepGarbage,
+        });
+      } else {
+        successCount += 1;
+      }
+    }
+  }
+
+  return {
+    runs: totalRuns,
+    stepsPerRun,
+    successCount,
+    failureCount,
+    averageInitialScore: totalInitialScore / totalRuns,
+    averageFinalScore: totalFinalScore / totalRuns,
+    averageMinScore: totalMinScore / totalRuns,
+    averageScoreRetention: totalScoreRetention / totalRuns,
+    averageInitialOpportunities: totalInitialOpportunities / totalRuns,
+    averageFinalOpportunities: totalFinalOpportunities / totalRuns,
+    averageMinOpportunities: totalMinOpportunities / totalRuns,
+    averageFinalGoodCoverage: totalFinalGoodCoverage / totalRuns,
+    averageMinGoodCoverage: totalMinGoodCoverage / totalRuns,
+    averageRepairs: totalRepairs / totalRuns,
+    failures,
+  };
+};
+
+type TimedPlayerConfig = {
+  level: WordWaveTimedPlayerLevel;
+  minThinkSeconds: number;
+  maxThinkSeconds: number;
+};
+
+const TIMED_PLAYER_CONFIGS: TimedPlayerConfig[] = [
+  {level: 'bad', minThinkSeconds: 8, maxThinkSeconds: 12},
+  {level: 'medium', minThinkSeconds: 5, maxThinkSeconds: 8},
+  {level: 'good', minThinkSeconds: 3, maxThinkSeconds: 5},
+];
+
+const getWordWaveRepairBudget = (wordLength: number) => {
+  if (wordLength >= 7) {
+    return 4;
+  }
+
+  if (wordLength >= 6) {
+    return 3;
+  }
+
+  if (wordLength >= 5) {
+    return 2;
+  }
+
+  return 1;
+};
+
+export const getWordWaveArcadeScore = (wordLength: number) =>
+  wordLength * 10 + Math.max(0, wordLength - 4) * 18;
+
+export const getWordWavePressureValue = (wordLength: number) =>
+  wordLength + Math.max(0, wordLength - 4);
+
+const getRandomThinkSeconds = (config: TimedPlayerConfig) =>
+  config.minThinkSeconds +
+  Math.random() * (config.maxThinkSeconds - config.minThinkSeconds);
+
+const createBoardWithTopRow = (
+  board: WordWaveBoard,
+  letters: string[],
+): WordWaveBoard => [
+  letters.map(createTile),
+  ...board.slice(0, WORD_WAVE_SIZE - 1),
+];
+
+const getTimedTopRowHints = (board: WordWaveBoard) => {
+  const shiftedSlots: BoardSlots = [
+    Array.from({length: WORD_WAVE_SIZE}, () => null),
+    ...board.slice(0, WORD_WAVE_SIZE - 1),
+  ];
+  const hints: Array<{col: number; letter: string; score: number}> = [];
+
+  for (let col = 0; col < WORD_WAVE_SIZE; col += 1) {
+    for (const direction of [
+      {dx: -1, dy: 1},
+      {dx: 0, dy: 1},
+      {dx: 1, dy: 1},
+    ]) {
+      for (
+        let length = WORD_WAVE_SIZE;
+        length >= WORD_WAVE_PLANNED_MIN_WORD_LENGTH;
+        length -= 1
+      ) {
+        const path = getPathForWordPlacement(0, col, direction, 'A'.repeat(length));
+
+        if (!path) {
+          continue;
+        }
+
+        for (const word of WORDS_BY_LENGTH.get(length) ?? []) {
+          if (
+            path.every((position, index) => {
+              const tile = shiftedSlots[position.row][position.col];
+              return !tile || tile.letter === word[index];
+            })
+          ) {
+            hints.push({
+              col,
+              letter: word[0],
+              score:
+                word.length * word.length +
+                (isDiagonalDirection(direction) ? 8 : 4),
+            });
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  return hints.sort((a, b) => b.score - a.score).slice(0, 24);
+};
+
+const createSmartTimedTopRow = (board: WordWaveBoard) => {
+  const hints = getTimedTopRowHints(board);
+  let bestBoard = createBoardWithTopRow(
+    board,
+    Array.from({length: WORD_WAVE_SIZE}, randomLetter),
+  );
+  let bestScore = getStaticRefillForecastScore({
+    board: bestBoard,
+    quality: scoreWordWaveBoard(bestBoard),
+  });
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const letters = Array.from({length: WORD_WAVE_SIZE}, randomLetter);
+
+    shuffle(hints)
+      .slice(0, 4)
+      .forEach(hint => {
+        letters[hint.col] = hint.letter;
+      });
+
+    const candidateBoard = createBoardWithTopRow(
+      board,
+      letters,
+    );
+    const candidateScore = getStaticRefillForecastScore({
+      board: candidateBoard,
+      quality: scoreWordWaveBoard(candidateBoard),
+    });
+
+    if (candidateScore > bestScore) {
+      bestBoard = candidateBoard;
+      bestScore = candidateScore;
+    }
+  }
+
+  return bestBoard;
+};
+
+export const applyWordWaveTimedRowDrop = (board: WordWaveBoard) =>
+  createSmartTimedTopRow(board);
+
+export const applyWordWaveTimedWordFound = (
+  board: WordWaveBoard,
+  wordLength: number,
+): WordWaveTimedWordResult => {
+  const repairResult = repairWordWaveBoard(
+    board,
+    {},
+    getWordWaveRepairBudget(wordLength),
+  );
+
+  return {
+    board: repairResult.board,
+    repairedCount: repairResult.repairedCount,
+    pressureScore: getWordWavePressureValue(wordLength),
+    arcadeScore: getWordWaveArcadeScore(wordLength),
+  };
+};
+
+export const applyWordWaveTimedSelectionFast = (
+  board: WordWaveBoard,
+  path: WordWavePosition[],
+  wordLength: number,
+): WordWaveTimedSelectionResult => {
+  const refillResult = refillWordWaveBoardFast(board, path);
+
+  return {
+    board: refillResult.board,
+    repairedCount: 0,
+    pressureScore: getWordWavePressureValue(wordLength),
+    arcadeScore: getWordWaveArcadeScore(wordLength),
+    refillAttempts: refillResult.attempts,
+  };
+};
+
+const pickTimedPlayerMove = (
+  moves: WordWaveMove[],
+  level: WordWaveTimedPlayerLevel,
+) => {
+  const uniqueMoves = getUniqueMovesByWord(moves);
+
+  if (uniqueMoves.length === 0) {
+    return undefined;
+  }
+
+  if (level === 'bad') {
+    const easyMoves = uniqueMoves
+      .filter(move => move.word.length <= 4)
+      .sort(
+        (a, b) =>
+          a.word.length - b.word.length ||
+          getWordWaveMoveScore(b) - getWordWaveMoveScore(a),
+      );
+    const pickPool = easyMoves.length > 0 ? easyMoves : uniqueMoves;
+
+    return pickPool[Math.floor(Math.random() * Math.min(8, pickPool.length))];
+  }
+
+  if (level === 'medium') {
+    const mediumMoves = uniqueMoves
+      .filter(move => move.word.length >= 4)
+      .sort(
+        (a, b) =>
+          getWordWaveMoveScore(b) - getWordWaveMoveScore(a) ||
+          b.word.length - a.word.length,
+      );
+    const pickPool = mediumMoves.length > 0 ? mediumMoves : uniqueMoves;
+
+    return pickPool[Math.floor(Math.random() * Math.min(8, pickPool.length))];
+  }
+
+  const goodMoves = uniqueMoves
+    .filter(move => move.word.length >= 5)
+    .sort(
+      (a, b) =>
+        b.word.length - a.word.length ||
+        getWordWaveMoveScore(b) - getWordWaveMoveScore(a),
+    );
+  const pickPool = goodMoves.length > 0 ? goodMoves : uniqueMoves;
+
+  return pickPool[Math.floor(Math.random() * Math.min(5, pickPool.length))];
+};
+
+export const simulateWordWaveTimedGameplay = (
+  seconds = 120,
+  runsPerPlayer = 30,
+  rowDropSeconds = 10,
+): WordWaveTimedSimulationReport => {
+  const profiles = TIMED_PLAYER_CONFIGS.map(config => {
+    let successCount = 0;
+    let failureCount = 0;
+    let totalInitialScore = 0;
+    let totalFinalScore = 0;
+    let totalMinScore = 0;
+    let totalScoreRetention = 0;
+    let totalWordsFound = 0;
+    let totalLettersFound = 0;
+    let totalLongWordsFound = 0;
+    let totalRowDrops = 0;
+    let totalRepairSwitches = 0;
+    let totalLetterPressureScore = 0;
+    let totalArcadeScore = 0;
+
+    for (let run = 0; run < runsPerPlayer; run += 1) {
+      let board = createWordWaveBoard();
+      let elapsedSeconds = 0;
+      let nextFindSeconds = getRandomThinkSeconds(config);
+      let nextRowDropSeconds = rowDropSeconds;
+      let wordsFound = 0;
+      let lettersFound = 0;
+      let longWordsFound = 0;
+      let rowDrops = 0;
+      let repairSwitches = 0;
+      let letterPressureScore = 0;
+      let arcadeScore = 0;
+      let failed = false;
+      const firstSummary = summarizeOpportunities(board);
+      let minScore = firstSummary.healthScore;
+      let finalSummary = firstSummary;
+
+      totalInitialScore += firstSummary.healthScore;
+
+      while (elapsedSeconds < seconds) {
+        if (nextRowDropSeconds <= nextFindSeconds) {
+          elapsedSeconds = nextRowDropSeconds;
+          board = createSmartTimedTopRow(board);
+          rowDrops += 1;
+          letterPressureScore -= WORD_WAVE_SIZE;
+          nextRowDropSeconds += rowDropSeconds;
+        } else {
+          elapsedSeconds = nextFindSeconds;
+          const move = pickTimedPlayerMove(findWordWaveMoves(board), config.level);
+
+          if (!move) {
+            failed = true;
+            break;
+          }
+
+          const wordResult = applyWordWaveTimedWordFound(board, move.word.length);
+
+          board = wordResult.board;
+          wordsFound += 1;
+          lettersFound += move.word.length;
+          longWordsFound += move.word.length >= 5 ? 1 : 0;
+          repairSwitches += wordResult.repairedCount;
+          letterPressureScore += wordResult.pressureScore;
+          arcadeScore += wordResult.arcadeScore;
+          nextFindSeconds += getRandomThinkSeconds(config);
+        }
+
+        finalSummary = summarizeOpportunities(board);
+        minScore = Math.min(minScore, finalSummary.healthScore);
+
+        if (finalSummary.opportunities === 0) {
+          failed = true;
+          break;
+        }
+      }
+
+      const scoreRetention =
+        finalSummary.healthScore / Math.max(1, firstSummary.healthScore);
+
+      if (!failed && letterPressureScore >= 0) {
+        successCount += 1;
+      } else {
+        failureCount += 1;
+      }
+
+      totalFinalScore += finalSummary.healthScore;
+      totalMinScore += minScore;
+      totalScoreRetention += scoreRetention;
+      totalWordsFound += wordsFound;
+      totalLettersFound += lettersFound;
+      totalLongWordsFound += longWordsFound;
+      totalRowDrops += rowDrops;
+      totalRepairSwitches += repairSwitches;
+      totalLetterPressureScore += letterPressureScore;
+      totalArcadeScore += arcadeScore;
+    }
+
+    return {
+      level: config.level,
+      successCount,
+      failureCount,
+      averageInitialScore: totalInitialScore / runsPerPlayer,
+      averageFinalScore: totalFinalScore / runsPerPlayer,
+      averageMinScore: totalMinScore / runsPerPlayer,
+      averageScoreRetention: totalScoreRetention / runsPerPlayer,
+      averageWordsFound: totalWordsFound / runsPerPlayer,
+      averageWordLength: totalLettersFound / Math.max(1, totalWordsFound),
+      averageLongWordsFound: totalLongWordsFound / runsPerPlayer,
+      averageRowDrops: totalRowDrops / runsPerPlayer,
+      averageRepairSwitches: totalRepairSwitches / runsPerPlayer,
+      averageLetterPressureScore: totalLetterPressureScore / runsPerPlayer,
+      averageArcadeScore: totalArcadeScore / runsPerPlayer,
+    };
+  });
+
+  return {
+    seconds,
+    runsPerPlayer,
+    rowDropSeconds,
+    profiles,
   };
 };
 

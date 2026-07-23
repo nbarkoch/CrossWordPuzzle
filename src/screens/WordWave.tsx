@@ -12,6 +12,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -19,6 +20,8 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import NavigationBar from '~/components/NavigationBar';
 import {RootStackParamList} from './Navigation';
 import {
+  applyWordWaveTimedRowDrop,
+  applyWordWaveTimedSelectionFast,
   createWordWaveBoard,
   findWordWaveMoves,
   getMoveForPath,
@@ -26,11 +29,9 @@ import {
   getWordWaveMoveScore,
   getWordWaveSelectionPath,
   pathContainsPosition,
-  refillWordWaveBoard,
   WORD_WAVE_SIZE,
   WordWaveBoard,
   WordWavePosition,
-  WordWaveRefillResult,
   WordWaveTile,
 } from '~/utils/wordWave';
 
@@ -42,47 +43,114 @@ type TileProps = {
   tile: WordWaveTile;
   row: number;
   col: number;
-  startPosition?: WordWavePosition;
   cellSize: number;
   selected: boolean;
   valid: boolean;
+  hidden: boolean;
+  startPosition?: WordWavePosition;
 };
 
-const getPathCacheKey = (path: WordWavePosition[]) =>
-  path.map(position => `${position.row}:${position.col}`).join('|');
+const WORD_WAVE_ROW_DROP_SECONDS = 10;
+const tileSpringConfig = {
+  mass: 0.35,
+  damping: 14,
+  stiffness: 120,
+};
+
+const getNewTileSpawnPositions = (
+  previousBoard: WordWaveBoard,
+  nextBoard: WordWaveBoard,
+) => {
+  const previousTileIds = new Set(
+    previousBoard.flatMap(row => row.map(tile => tile.id)),
+  );
+  const newTilesByColumn = new Map<
+    number,
+    {tile: WordWaveTile; row: number; col: number}[]
+  >();
+
+  nextBoard.forEach((rowTiles, row) => {
+    rowTiles.forEach((tile, col) => {
+      if (previousTileIds.has(tile.id)) {
+        return;
+      }
+
+      const columnTiles = newTilesByColumn.get(col) ?? [];
+      columnTiles.push({tile, row, col});
+      newTilesByColumn.set(col, columnTiles);
+    });
+  });
+
+  const spawnPositions = new Map<string, WordWavePosition>();
+
+  newTilesByColumn.forEach(columnTiles => {
+    const spawnDistance = columnTiles.length;
+
+    columnTiles
+      .sort((a, b) => a.row - b.row)
+      .forEach(({tile, row, col}) => {
+        spawnPositions.set(tile.id, {
+          row: row - spawnDistance,
+          col,
+        });
+      });
+  });
+
+  return spawnPositions;
+};
 
 const Tile: React.FC<TileProps> = ({
   tile,
   row,
   col,
-  startPosition,
   cellSize,
   selected,
   valid,
+  hidden,
+  startPosition,
 }) => {
-  const initialCol = startPosition?.col ?? col;
-  const initialRow = startPosition?.row ?? row;
-  const translateX = useSharedValue(initialCol * cellSize);
-  const translateY = useSharedValue(initialRow * cellSize);
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      {translateX: translateX.value},
-      {translateY: translateY.value},
-    ],
+  const spawnTranslateY = useSharedValue(
+    startPosition ? (startPosition.row - row) * cellSize : 0,
+  );
+  const letterTranslateX = useSharedValue(0);
+  const letterOpacity = useSharedValue(1);
+  const tileAnimatedStyle = useAnimatedStyle(
+    () => ({
+      transform: [
+        {translateX: withSpring(col * cellSize, tileSpringConfig)},
+        {translateY: withSpring(row * cellSize, tileSpringConfig)},
+      ],
+    }),
+    [cellSize, col, row],
+  );
+  const letterAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: letterOpacity.value,
+    transform: [{translateX: letterTranslateX.value}],
+  }));
+  const spawnAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{translateY: spawnTranslateY.value}],
   }));
 
   useEffect(() => {
-    translateX.value = withSpring(col * cellSize, {
-      mass: 0.35,
-      damping: 14,
-      stiffness: 120,
+    if (!startPosition) {
+      spawnTranslateY.value = 0;
+      return;
+    }
+
+    spawnTranslateY.value = (startPosition.row - row) * cellSize;
+    spawnTranslateY.value = withSpring(0, tileSpringConfig);
+  }, [cellSize, row, spawnTranslateY, startPosition, startPosition?.row]);
+
+  useEffect(() => {
+    letterTranslateX.value = cellSize * 0.28;
+    letterOpacity.value = 0;
+    letterTranslateX.value = withSpring(0, {
+      mass: 0.25,
+      damping: 12,
+      stiffness: 150,
     });
-    translateY.value = withSpring(row * cellSize, {
-      mass: 0.35,
-      damping: 14,
-      stiffness: 120,
-    });
-  }, [cellSize, col, row, translateX, translateY]);
+    letterOpacity.value = withTiming(1, {duration: 140});
+  }, [cellSize, letterOpacity, letterTranslateX, tile.letter]);
 
   return (
     <Animated.View
@@ -92,17 +160,21 @@ const Tile: React.FC<TileProps> = ({
           width: cellSize,
           height: cellSize,
         },
-        animatedStyle,
+        tileAnimatedStyle,
       ]}
       pointerEvents="none">
-      <View
+      <Animated.View
         style={[
           styles.tile,
+          spawnAnimatedStyle,
           selected && styles.tileSelected,
           valid && styles.tileValid,
+          hidden && styles.tileHidden,
         ]}>
-        <Text style={styles.tileLetter}>{tile.letter}</Text>
-      </View>
+        <Animated.Text style={[styles.tileLetter, letterAnimatedStyle]}>
+          {tile.letter}
+        </Animated.Text>
+      </Animated.View>
     </Animated.View>
   );
 };
@@ -112,19 +184,23 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     createWordWaveBoard(),
   );
   const [selection, setSelection] = useState<WordWavePosition[]>([]);
-  const [lastAttempts, setLastAttempts] = useState(0);
-  const [lastInjectedWord, setLastInjectedWord] = useState<string>();
+  const [dropSecondsLeft, setDropSecondsLeft] = useState(
+    WORD_WAVE_ROW_DROP_SECONDS,
+  );
+  const [pressureScore, setPressureScore] = useState(0);
+  const [arcadeScore, setArcadeScore] = useState(0);
+  const [wordsFound, setWordsFound] = useState(0);
+  const [rowDrops, setRowDrops] = useState(0);
+  const [lastRepairCount, setLastRepairCount] = useState(0);
   const [hintIndex, setHintIndex] = useState(0);
   const [isResolving, setIsResolving] = useState(false);
+  const [hiddenTileIds, setHiddenTileIds] = useState<Set<string>>(new Set());
+  const isResolvingRef = useRef(false);
+  const dropSecondsLeftRef = useRef(WORD_WAVE_ROW_DROP_SECONDS);
+  const resolveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectionRef = useRef<WordWavePosition[]>([]);
   const startPositionRef = useRef<WordWavePosition | null>(null);
-  const previousTilePositionsRef = useRef<Map<string, WordWavePosition>>(
-    new Map(),
-  );
-  const spawnedTilePositionsRef = useRef<Map<string, WordWavePosition>>(
-    new Map(),
-  );
-  const predictedRefillsRef = useRef<Map<string, WordWaveRefillResult>>(
+  const newTileSpawnPositionsRef = useRef<Map<string, WordWavePosition>>(
     new Map(),
   );
   const {width} = useWindowDimensions();
@@ -168,90 +244,90 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   );
 
   useEffect(() => {
-    let cancelled = false;
-    const predictions = new Map<string, WordWaveRefillResult>();
-    const predictedMoves = visibleWords.slice(0, 6);
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let index = 0;
+    isResolvingRef.current = isResolving;
+  }, [isResolving]);
 
-    predictedRefillsRef.current = predictions;
-
-    const prepareNext = () => {
-      if (cancelled || index >= predictedMoves.length) {
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (isResolvingRef.current) {
         return;
       }
 
-      const move = predictedMoves[index];
-      index += 1;
+      const nextSeconds = dropSecondsLeftRef.current - 1;
 
-      predictions.set(getPathCacheKey(move.path), refillWordWaveBoard(board, move.path));
-      timer = setTimeout(prepareNext, 20);
-    };
+      if (nextSeconds > 0) {
+        dropSecondsLeftRef.current = nextSeconds;
+        setDropSecondsLeft(nextSeconds);
+        return;
+      }
 
-    timer = setTimeout(prepareNext, 80);
+      dropSecondsLeftRef.current = WORD_WAVE_ROW_DROP_SECONDS;
+      setDropSecondsLeft(WORD_WAVE_ROW_DROP_SECONDS);
+      setHiddenTileIds(new Set());
+      setBoard(currentBoard => {
+        const nextBoard = applyWordWaveTimedRowDrop(currentBoard);
+        newTileSpawnPositionsRef.current = getNewTileSpawnPositions(
+          currentBoard,
+          nextBoard,
+        );
+        return nextBoard;
+      });
+      setPressureScore(score => score - WORD_WAVE_SIZE);
+      setRowDrops(count => count + 1);
+    }, 1000);
 
     return () => {
-      cancelled = true;
-
-      if (timer) {
-        clearTimeout(timer);
-      }
+      clearInterval(timer);
     };
-  }, [board, visibleWords]);
+  }, []);
 
-  const removeSelection = (path: WordWavePosition[]) => {
+  useEffect(
+    () => () => {
+      if (resolveTimerRef.current) {
+        clearTimeout(resolveTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  const resolveWordSelection = () => {
+    const move = getMoveForPath(board, selectionRef.current);
+
+    if (!move || isResolving) {
+      return;
+    }
+
+    isResolvingRef.current = true;
     setIsResolving(true);
+    setHiddenTileIds(
+      new Set(move.path.map(position => board[position.row][position.col].id)),
+    );
     startPositionRef.current = null;
     selectionRef.current = [];
     setSelection([]);
 
     requestAnimationFrame(() => {
-      const previousPositions = new Map<string, WordWavePosition>();
+      resolveTimerRef.current = setTimeout(() => {
+        const wordResult = applyWordWaveTimedSelectionFast(
+          board,
+          move.path,
+          move.word.length,
+        );
 
-      board.forEach((rowTiles, row) => {
-        rowTiles.forEach((tile, col) => {
-          previousPositions.set(tile.id, {row, col});
-        });
-      });
-
-      const result =
-        predictedRefillsRef.current.get(getPathCacheKey(path)) ??
-        refillWordWaveBoard(board, path);
-      const spawnedPositions = new Map<string, WordWavePosition>();
-      const newTilesByCol = new Map<
-        number,
-        {tile: WordWaveTile; row: number; col: number}[]
-      >();
-
-      result.board.forEach((rowTiles, row) => {
-        rowTiles.forEach((tile, col) => {
-          if (previousPositions.has(tile.id)) {
-            return;
-          }
-
-          const colTiles = newTilesByCol.get(col) ?? [];
-          colTiles.push({tile, row, col});
-          newTilesByCol.set(col, colTiles);
-        });
-      });
-
-      newTilesByCol.forEach(colTiles => {
-        const spawnOffset = colTiles.length;
-
-        colTiles
-          .sort((a, b) => a.row - b.row)
-          .forEach(({tile, row, col}) => {
-            spawnedPositions.set(tile.id, {row: row - spawnOffset, col});
-          });
-      });
-
-      previousTilePositionsRef.current = previousPositions;
-      spawnedTilePositionsRef.current = spawnedPositions;
-      setBoard(result.board);
-      setLastAttempts(result.attempts);
-      setLastInjectedWord(result.injectedWord);
-      setHintIndex(0);
-      setIsResolving(false);
+        newTileSpawnPositionsRef.current = getNewTileSpawnPositions(
+          board,
+          wordResult.board,
+        );
+        setBoard(wordResult.board);
+        setHiddenTileIds(new Set());
+        setPressureScore(score => score + wordResult.pressureScore);
+        setArcadeScore(score => score + wordResult.arcadeScore);
+        setWordsFound(count => count + 1);
+        setLastRepairCount(wordResult.repairedCount);
+        setHintIndex(0);
+        isResolvingRef.current = false;
+        setIsResolving(false);
+      }, 16);
     });
   };
 
@@ -293,7 +369,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     const move = getMoveForPath(board, selectionRef.current);
 
     if (move && !isResolving) {
-      removeSelection(move.path);
+      resolveWordSelection();
     } else {
       startPositionRef.current = null;
     }
@@ -323,16 +399,16 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
         style={styles.content}>
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{moves.length}</Text>
-            <Text style={styles.statLabel}>Moves</Text>
+            <Text style={styles.statValue}>{dropSecondsLeft}</Text>
+            <Text style={styles.statLabel}>Drop</Text>
           </View>
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{visibleWords.length}</Text>
-            <Text style={styles.statLabel}>Words</Text>
+            <Text style={styles.statValue}>{pressureScore}</Text>
+            <Text style={styles.statLabel}>Wave</Text>
           </View>
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{lastAttempts || '-'}</Text>
-            <Text style={styles.statLabel}>Refill</Text>
+            <Text style={styles.statValue}>{arcadeScore}</Text>
+            <Text style={styles.statLabel}>Score</Text>
           </View>
         </View>
 
@@ -356,6 +432,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
           {renderedTiles.map(({tile, row, col}) => {
               const position = {row, col};
               const selected = pathContainsPosition(selection, position);
+              const hidden = hiddenTileIds.has(tile.id);
 
               return (
                 <Tile
@@ -363,13 +440,11 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
                   tile={tile}
                   row={row}
                   col={col}
-                  startPosition={
-                    previousTilePositionsRef.current.get(tile.id) ??
-                    spawnedTilePositionsRef.current.get(tile.id)
-                  }
                   cellSize={cellSize}
                   selected={selected}
                   valid={selected && Boolean(selectedMove)}
+                  hidden={hidden}
+                  startPosition={newTileSpawnPositionsRef.current.get(tile.id)}
                 />
               );
             })}
@@ -383,7 +458,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
           <Pressable
             disabled={!selectedMove || isResolving}
             onPress={() =>
-              selectedMove && !isResolving && removeSelection(selectedMove.path)
+              selectedMove && !isResolving && resolveWordSelection()
             }
             style={({pressed}) => [
               styles.clearButton,
@@ -391,14 +466,17 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
               pressed && selectedMove && styles.clearButtonPressed,
             ]}>
             <Text style={styles.clearButtonText}>
-              {isResolving ? '...' : 'Clear'}
+              {isResolving ? '...' : 'Found'}
             </Text>
           </Pressable>
         </View>
 
-        {lastInjectedWord ? (
-          <Text style={styles.injectedText}>Injected {lastInjectedWord}</Text>
-        ) : null}
+        <View style={styles.miniStatsRow}>
+          <Text style={styles.injectedText}>Words {wordsFound}</Text>
+          <Text style={styles.injectedText}>Rows {rowDrops}</Text>
+          <Text style={styles.injectedText}>Repair {lastRepairCount}</Text>
+          <Text style={styles.injectedText}>Options {visibleWords.length}</Text>
+        </View>
 
         <View style={styles.wordsPanel}>
           <View style={styles.wordsHeader}>
@@ -508,6 +586,9 @@ const styles = StyleSheet.create({
   tileValid: {
     backgroundColor: '#6FE6A8',
   },
+  tileHidden: {
+    opacity: 0,
+  },
   tilePressed: {
     transform: [{scale: 0.96}],
   },
@@ -560,11 +641,16 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   injectedText: {
-    width: '100%',
-    maxWidth: 380,
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '800',
+  },
+  miniStatsRow: {
+    width: '100%',
+    maxWidth: 380,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
     marginTop: 8,
   },
   wordsPanel: {
