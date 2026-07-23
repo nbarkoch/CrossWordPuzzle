@@ -17,6 +17,7 @@ function Game({navigation}: GameProps) {
       category={routeParams.category}
       gridSize={routeParams.blockSize}
       mode={routeParams.mode}
+      resume={routeParams.resume ?? false}
     />
   );
 }

@@ -39,6 +39,18 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {runOnJS} from 'react-native-worklets';
 import {Banner} from './AdBanner';
 import LinearGradient from 'react-native-linear-gradient';
+import {getDateSeed} from '~/utils/generate';
+import {clearSavedGame, saveGame} from '~/utils/gameStorage';
+
+const buildFoundLetters = (sequences: WordSequence[]) => {
+  const found: {[key: string]: boolean} = {};
+  sequences.forEach(sequence => {
+    sequence.blocks.forEach(block => {
+      found[`${block.row}-${block.col}`] = true;
+    });
+  });
+  return found;
+};
 
 type GridConfig = {
   gridRows: number;
@@ -57,6 +69,7 @@ type GridContentProps = {
   category: CategorySelection;
   mode: GameMode;
   gridSize: GridSize;
+  initialSequences?: WordSequence[];
 };
 export default function GridContent({
   gridData,
@@ -66,6 +79,7 @@ export default function GridContent({
   category,
   gridSize,
   mode,
+  initialSequences = [],
 }: GridContentProps) {
   const {
     gridRows,
@@ -75,12 +89,12 @@ export default function GridContent({
     normalizedPlacedWords,
     gridHorizontalPadding,
   } = gridData;
-  const [sequences, setSequences] = useState<WordSequence[]>([]);
+  const [sequences, setSequences] = useState<WordSequence[]>(initialSequences);
   const [endDialog, setEndDialog] = useState<boolean>(false);
   const insets = useSafeAreaInsets();
 
   const [foundLetters, setFoundLetters] = useState<{[key: string]: boolean}>(
-    {},
+    () => buildFoundLetters(initialSequences),
   );
 
   const resetEnabled = mode === 'classic';
@@ -176,17 +190,59 @@ export default function GridContent({
     onGameReset,
   ]);
 
+  const handleEndDialogHome = useCallback(() => {
+    // Close the dialog first, then navigate on the next frame so the modal is
+    // dismissed before the screen transition starts (otherwise it can be left
+    // on screen).
+    setEndDialog(false);
+    requestAnimationFrame(onGoHome);
+  }, [onGoHome]);
+
+  // Restore progress bar when resuming a saved game.
   useEffect(() => {
+    if (initialSequences.length > 0 && placedWords.length > 0) {
+      progress.value = Math.floor(
+        (initialSequences.length / placedWords.length) * 100,
+      );
+    }
+    // Run once on mount only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Detect completion and persist classic/daily game state on every change.
+  useEffect(() => {
+    if (mode !== 'classic' && mode !== 'daily') {
+      return;
+    }
+
     const normalizedFoundWords = sequences.map(seq => seq.word);
+    const allWordsFound =
+      normalizedPlacedWords.length > 0 &&
+      normalizedPlacedWords.every(word =>
+        normalizedFoundWords.includes(word),
+      );
 
-    const allWordsFound = normalizedPlacedWords.every(word =>
-      normalizedFoundWords.includes(word),
-    );
-
-    if (allWordsFound && normalizedPlacedWords.length > 0) {
+    if (allWordsFound) {
       setEndDialog(true);
     }
-  }, [sequences, normalizedPlacedWords]);
+
+    // A finished classic game has nothing to resume — drop its save.
+    if (mode === 'classic' && allWordsFound) {
+      clearSavedGame('classic');
+      return;
+    }
+
+    saveGame({
+      mode,
+      category,
+      gridSize,
+      gridData,
+      sequences,
+      completed: allWordsFound,
+      dateSeed: mode === 'daily' ? getDateSeed() : undefined,
+      savedAt: Date.now(),
+    });
+  }, [sequences, normalizedPlacedWords, mode, category, gridSize, gridData]);
 
   // Function to update the current word based on selected blocks
   const updateCurrentWord = (blocks: Position[]) => {
@@ -531,7 +587,7 @@ export default function GridContent({
       <EndGameDialog
         visible={endDialog}
         onPlayAgain={resetGame}
-        onGoHome={onGoHome}
+        onGoHome={handleEndDialogHome}
         resetEnabled={resetEnabled}
       />
     </>

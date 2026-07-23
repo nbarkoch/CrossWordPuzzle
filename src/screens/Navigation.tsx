@@ -18,6 +18,8 @@ export type RootStackParamList = {
     category: CategorySelection;
     mode: GameMode;
     blockSize: GridSize;
+    /** When true, restore the saved game for this mode instead of generating a new one. */
+    resume?: boolean;
   };
   Settings: undefined;
   GameOptions: {

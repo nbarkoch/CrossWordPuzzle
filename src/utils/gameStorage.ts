@@ -1,0 +1,59 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import {GeneratedGridConfig} from './gridGenerationCache';
+import {CategorySelection, GridSize, WordSequence} from './types';
+
+export type SavedGameMode = 'classic' | 'daily';
+
+export type SavedGame = {
+  mode: SavedGameMode;
+  category: CategorySelection;
+  gridSize: GridSize;
+  gridData: GeneratedGridConfig;
+  sequences: WordSequence[];
+  completed: boolean;
+  /** Only set for daily games: the YYYYMMDD seed the grid was generated for. */
+  dateSeed?: number;
+  savedAt: number;
+};
+
+const STORAGE_KEYS: Record<SavedGameMode, string> = {
+  classic: '@saved_game/classic',
+  daily: '@saved_game/daily',
+};
+
+export const loadSavedGame = async (
+  mode: SavedGameMode,
+): Promise<SavedGame | null> => {
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS[mode]);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as SavedGame;
+    // Guard against corrupt / partial payloads.
+    if (!parsed?.gridData?.letterGrid?.length) {
+      return null;
+    }
+    return parsed;
+  } catch (error) {
+    console.error('Failed to load saved game:', error);
+    return null;
+  }
+};
+
+export const saveGame = async (game: SavedGame): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS[game.mode], JSON.stringify(game));
+  } catch (error) {
+    console.error('Failed to save game:', error);
+  }
+};
+
+export const clearSavedGame = async (mode: SavedGameMode): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEYS[mode]);
+  } catch (error) {
+    console.error('Failed to clear saved game:', error);
+  }
+};

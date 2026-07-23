@@ -1,33 +1,101 @@
-import React, {useEffect} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {View, Text, StyleSheet, Pressable} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {useFocusEffect} from '@react-navigation/native';
 
 import Animated, {FadeInDown, FadeIn} from 'react-native-reanimated';
 import {RootStackParamList} from './Navigation';
 import {GameMode} from '~/utils/types';
 import {prepareGrid} from '~/utils/gridGenerationCache';
+import {getDateSeed} from '~/utils/generate';
+import {loadSavedGame, SavedGame} from '~/utils/gameStorage';
+import ContinueGameDialog from '~/components/dialogs/ContinueGameDialog';
 
 type MainMenuProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MainMenu'>;
 };
 
 const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
+  const [classicSave, setClassicSave] = useState<SavedGame | null>(null);
+  const [dailyDone, setDailyDone] = useState(false);
+  const [dailyResumable, setDailyResumable] = useState(false);
+  const [showContinueDialog, setShowContinueDialog] = useState(false);
+
   useEffect(() => {
     prepareGrid({category: 'general', gridSize: 'medium', mode: 'daily'});
   }, []);
 
+  // Refresh saved-game state each time the menu regains focus.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      (async () => {
+        const [classic, daily] = await Promise.all([
+          loadSavedGame('classic'),
+          loadSavedGame('daily'),
+        ]);
+
+        if (!active) {
+          return;
+        }
+
+        setClassicSave(classic && !classic.completed ? classic : null);
+
+        const today = getDateSeed();
+        if (daily && daily.dateSeed === today) {
+          setDailyDone(daily.completed);
+          setDailyResumable(!daily.completed);
+        } else {
+          setDailyDone(false);
+          setDailyResumable(false);
+        }
+      })();
+
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
+  const startNewClassicGame = () => {
+    setShowContinueDialog(false);
+    navigation.navigate('GameOptions', {mode: 'classic'});
+  };
+
+  const continueClassicGame = () => {
+    if (!classicSave) {
+      return;
+    }
+    setShowContinueDialog(false);
+    navigation.navigate('Game', {
+      category: classicSave.category,
+      blockSize: classicSave.gridSize,
+      mode: 'classic',
+      resume: true,
+    });
+  };
+
   const handleModeSelection = (mode: GameMode) => {
     switch (mode) {
       case 'classic': {
-        navigation.navigate('GameOptions', {mode});
+        if (classicSave) {
+          setShowContinueDialog(true);
+        } else {
+          navigation.navigate('GameOptions', {mode});
+        }
         break;
       }
       case 'daily': {
+        if (dailyDone) {
+          break;
+        }
         navigation.navigate('Game', {
           category: 'general',
           blockSize: 'medium',
           mode,
+          resume: dailyResumable,
         });
         break;
       }
@@ -60,24 +128,51 @@ const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
             <LinearGradient
               colors={['#e77cff', '#d93cfc']}
               style={styles.modeGradient}>
+              {classicSave && (
+                <View style={styles.resumeBadge}>
+                  <Text style={styles.resumeBadgeText}>RESUME</Text>
+                </View>
+              )}
               <Text style={styles.modeTitle}>Classic Mode</Text>
               <Text style={styles.modeDescription}>
-                Find all words at your own pace
+                {classicSave
+                  ? `Continue your ${classicSave.category} puzzle`
+                  : 'Find all words at your own pace'}
               </Text>
             </LinearGradient>
           </Pressable>
 
           <Pressable
             onPress={() => handleModeSelection('daily')}
+            disabled={dailyDone}
             style={({pressed}) => [
               styles.modeButton,
-              pressed && styles.buttonPressed,
+              !dailyDone && pressed && styles.buttonPressed,
+              dailyDone && styles.modeButtonDisabled,
             ]}>
             <LinearGradient
-              colors={['#a855f7', '#994CFD']}
+              colors={
+                dailyDone ? ['#7a6aa8', '#6a5a98'] : ['#a855f7', '#994CFD']
+              }
               style={styles.modeGradient}>
+              {dailyDone && (
+                <View style={styles.doneBadge}>
+                  <Text style={styles.doneBadgeText}>✓ DONE</Text>
+                </View>
+              )}
+              {dailyResumable && (
+                <View style={styles.resumeBadge}>
+                  <Text style={styles.resumeBadgeText}>RESUME</Text>
+                </View>
+              )}
               <Text style={styles.modeTitle}>Daily Challenge</Text>
-              <Text style={styles.modeDescription}>New puzzles every day</Text>
+              <Text style={styles.modeDescription}>
+                {dailyDone
+                  ? 'Completed — new puzzle tomorrow'
+                  : dailyResumable
+                    ? "Resume today's challenge"
+                    : 'New puzzles every day'}
+              </Text>
             </LinearGradient>
           </Pressable>
 
@@ -116,6 +211,19 @@ const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
           </Pressable>
         </View>
       </Animated.View>
+
+      {classicSave && (
+        <ContinueGameDialog
+          visible={showContinueDialog}
+          category={classicSave.category}
+          gridSize={classicSave.gridSize}
+          wordsFound={classicSave.sequences.length}
+          totalWords={classicSave.gridData.placedWords.length}
+          onContinue={continueClassicGame}
+          onNewGame={startNewClassicGame}
+          onClose={() => setShowContinueDialog(false)}
+        />
+      )}
     </LinearGradient>
   );
 };
@@ -173,9 +281,42 @@ const styles = StyleSheet.create({
   modeGradient: {
     padding: 20,
   },
+  modeButtonDisabled: {
+    opacity: 0.55,
+  },
   buttonPressed: {
     opacity: 0.9,
     transform: [{scale: 0.98}],
+  },
+  resumeBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 10,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+  },
+  resumeBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  doneBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: 10,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+  },
+  doneBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   modeTitle: {
     fontSize: 24,

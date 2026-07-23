@@ -4,7 +4,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import LoadingAnimation from './LoadingAnimation';
 import GridContent from './GridContent';
 import {Banner} from './AdBanner';
-import {CategorySelection, GameMode, GridSize} from '~/utils/types';
+import {CategorySelection, GameMode, GridSize, WordSequence} from '~/utils/types';
 import {GRID_DIMENSIONS} from '~/utils/blockCalcs';
 import {BLOCK_SIZES, GRID_FRAME_PADDING, GRID_TOP} from '~/utils/consts';
 import {
@@ -13,6 +13,7 @@ import {
   prepareGrid,
   takePreparedGrid,
 } from '~/utils/gridGenerationCache';
+import {loadSavedGame} from '~/utils/gameStorage';
 
 type GridConfig = GeneratedGridConfig;
 
@@ -61,6 +62,7 @@ type GridLettersProps = {
   gridSize: GridSize;
   category: CategorySelection;
   mode: GameMode;
+  resume?: boolean;
 };
 
 export default function GridLetters({
@@ -68,9 +70,11 @@ export default function GridLetters({
   gridSize,
   goToMenu,
   category,
+  resume = false,
 }: GridLettersProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [gridData, setGridData] = useState<GridConfig>(initialGridData);
+  const [initialSequences, setInitialSequences] = useState<WordSequence[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [gameKey, setGameKey] = useState<number>(0);
 
@@ -88,32 +92,52 @@ export default function GridLetters({
     setIsLoading(true);
     setError(null);
 
-    const gridRequest = {category, gridSize, mode};
-    const preparedGrid = gameKey === 0 ? takePreparedGrid(gridRequest) : null;
-    const gridPromise = preparedGrid
-      ? Promise.resolve(preparedGrid)
-      : gameKey === 0
-        ? prepareGrid(gridRequest)
-        : generateGridOnIdle(gridRequest);
+    // Only resume from storage on the very first mount (gameKey === 0).
+    // Any reset (Play Again) starts a fresh, freshly-generated game.
+    const shouldResume = resume && gameKey === 0;
 
-    gridPromise.then(result => {
+    const loadGrid = async () => {
+      if (shouldResume) {
+        const saved = await loadSavedGame(mode as 'classic' | 'daily');
+        if (saved) {
+          if (!isMounted) {
+            return;
+          }
+          setGridData(saved.gridData);
+          setInitialSequences(saved.sequences);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      const gridRequest = {category, gridSize, mode};
+      const preparedGrid = gameKey === 0 ? takePreparedGrid(gridRequest) : null;
+      const result = await (preparedGrid
+        ? Promise.resolve(preparedGrid)
+        : gameKey === 0
+          ? prepareGrid(gridRequest)
+          : generateGridOnIdle(gridRequest));
+
       if (!isMounted) {
         return;
       }
 
       if (result.gridData) {
+        setInitialSequences([]);
         setGridData(result.gridData);
       } else {
         setError(result.error);
       }
 
       setIsLoading(false);
-    });
+    };
+
+    loadGrid();
 
     return () => {
       isMounted = false;
     };
-  }, [gameKey, gridSize, mode, category]);
+  }, [gameKey, gridSize, mode, category, resume]);
 
   const hasValidGrid = gridData.letterGrid.length > 0 && !isLoading && !error;
   const loadingDimensions = {
@@ -142,6 +166,7 @@ export default function GridLetters({
       ) : (
         hasValidGrid && (
           <GridContent
+            key={gameKey}
             gridData={gridData}
             blockSize={blockSize}
             onGoHome={goToMenu}
@@ -149,6 +174,7 @@ export default function GridLetters({
             gridSize={gridSize}
             category={category}
             mode={mode}
+            initialSequences={initialSequences}
           />
         )
       )}
