@@ -1,8 +1,10 @@
-import {WORD_WAVE_COMMON_WORDS, WORD_WAVE_WORDS} from '~/data/wordWaveWords';
+import {WORD_WAVE_COMMON_WORDS} from '~/data/wordWaveWords';
 
 export const WORD_WAVE_SIZE = 7;
 export const WORD_WAVE_MIN_WORD_LENGTH = 3;
 const WORD_WAVE_PLANNED_MIN_WORD_LENGTH = 4;
+const WORD_WAVE_PLAYABLE_MIN_WORD_LENGTH = 4;
+const WORD_WAVE_PLAYABLE_MAX_WORD_LENGTH = 6;
 
 export type WordWaveTile = {
   id: string;
@@ -156,15 +158,35 @@ const toWordBank = (words: string[]) =>
     ),
   );
 
-// Two tiers by design: the puzzle THINKS in common, recognizable words (board
-// seeding, hints, move detection, and the solvability guarantee all use
-// WORD_BANK) but ACCEPTS any valid dictionary word a player selects (see
-// VALIDATION_WORDS / isValidWordWaveSelection). This keeps generated boards
-// solvable with easy words while never rejecting a legitimate find.
-const WORD_BANK = toWordBank(WORD_WAVE_COMMON_WORDS);
-const VALIDATION_WORDS = new Set(toWordBank(WORD_WAVE_WORDS));
+const WORD_WAVE_AWKWARD_WORDS = new Set([
+  'ABBA',
+  'AGAS',
+  'GAGA',
+  'HAGS',
+  'JEFE',
+  'JEFES',
+  'SAES',
+  'SHAG',
+  'SHAGS',
+  'TATE',
+  'THANE',
+]);
 
-const SEED_WORDS = WORD_BANK.filter(word => word.length >= 5);
+const isPlayableWordWaveWord = (word: string) =>
+  word.length >= WORD_WAVE_PLAYABLE_MIN_WORD_LENGTH &&
+  word.length <= WORD_WAVE_PLAYABLE_MAX_WORD_LENGTH &&
+  !WORD_WAVE_AWKWARD_WORDS.has(word);
+
+// Word Wave should feel like finding clear human words, not Scrabble leftovers.
+// The broader WORD_WAVE_WORDS list remains available as source data, but this
+// mode currently generates, displays, and validates only the stricter playable
+// set.
+const WORD_BANK = toWordBank(WORD_WAVE_COMMON_WORDS).filter(
+  isPlayableWordWaveWord,
+);
+const VALIDATION_WORDS = new Set(WORD_BANK);
+
+const SEED_WORDS = WORD_BANK;
 const WORDS_BY_LENGTH = WORD_BANK.reduce((groups, word) => {
   const words = groups.get(word.length) ?? [];
 

@@ -1,7 +1,6 @@
 import React, {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -73,6 +72,7 @@ const tileSpringConfig = {
 };
 const TILE_SPAWN_COLUMN_DELAY_MS = 16;
 const TILE_SPAWN_STACK_DELAY_MS = 42;
+const WORD_WAVE_DROP_INPUT_GRACE_MS = 120;
 const WORD_WAVE_PENDING_DROP_PENALTY = 2;
 
 const getNewTileSpawnPositions = (
@@ -137,6 +137,7 @@ const Tile: React.FC<TileProps> = ({
 }) => {
   const startPosition = spawnState?.startPosition;
   const consumedSpawnIdRef = useRef<string | null>(null);
+  const spawnFrameRef = useRef<number | null>(null);
   const translateX = useSharedValue(
     (startPosition?.col ?? col) * cellSize,
   );
@@ -153,9 +154,14 @@ const Tile: React.FC<TileProps> = ({
     transform: [{translateX: letterTranslateX.value}],
   }));
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const targetX = col * cellSize;
     const targetY = row * cellSize;
+
+    if (spawnFrameRef.current !== null) {
+      cancelAnimationFrame(spawnFrameRef.current);
+      spawnFrameRef.current = null;
+    }
 
     if (!startPosition) {
       translateX.value = withSpring(targetX, tileSpringConfig);
@@ -172,18 +178,28 @@ const Tile: React.FC<TileProps> = ({
     consumedSpawnIdRef.current = tile.id;
     translateX.value = startPosition.col * cellSize;
     translateY.value = startPosition.row * cellSize;
-    translateX.value = withDelay(
-      spawnState.delayMs,
-      withSpring(targetX, tileSpringConfig),
-    );
-    translateY.value = withDelay(
-      spawnState.delayMs,
-      withSpring(targetY, tileSpringConfig, finished => {
-        if (finished) {
-          runOnJS(onSpawnConsumed)(tile.id);
-        }
-      }),
-    );
+
+    spawnFrameRef.current = requestAnimationFrame(() => {
+      translateX.value = withDelay(
+        spawnState.delayMs,
+        withSpring(targetX, tileSpringConfig),
+      );
+      translateY.value = withDelay(
+        spawnState.delayMs,
+        withSpring(targetY, tileSpringConfig, finished => {
+          if (finished) {
+            runOnJS(onSpawnConsumed)(tile.id);
+          }
+        }),
+      );
+    });
+
+    return () => {
+      if (spawnFrameRef.current !== null) {
+        cancelAnimationFrame(spawnFrameRef.current);
+        spawnFrameRef.current = null;
+      }
+    };
   }, [
     cellSize,
     col,
@@ -257,6 +273,9 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   const pendingRowDropRef = useRef(false);
   const dropSecondsLeftRef = useRef(WORD_WAVE_ROW_DROP_SECONDS);
   const resolveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingDropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const selectionRef = useRef<WordWavePosition[]>([]);
   const startPositionRef = useRef<WordWavePosition | null>(null);
   const newTileSpawnPositionsRef = useRef<Map<string, WordWaveTileSpawnState>>(
@@ -281,6 +300,10 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
 
     return moves
       .filter(move => {
+        if (move.word.length < 4 || move.word.length > 6) {
+          return false;
+        }
+
         if (usedWords.has(move.word)) {
           return false;
         }
@@ -293,7 +316,8 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
           getWordWaveMoveScore(b) - getWordWaveMoveScore(a) ||
           b.word.length - a.word.length ||
           a.word.localeCompare(b.word),
-      );
+      )
+      .slice(0, 12);
   }, [moves]);
   const renderedTiles = useMemo(
     () =>
@@ -304,6 +328,11 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   );
 
   const applyPendingRowDrop = useCallback(() => {
+    if (pendingDropTimerRef.current) {
+      clearTimeout(pendingDropTimerRef.current);
+      pendingDropTimerRef.current = null;
+    }
+
     pendingRowDropRef.current = false;
     setPendingRowDrop(false);
     dropSecondsLeftRef.current = WORD_WAVE_ROW_DROP_SECONDS;
@@ -321,12 +350,34 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   }, []);
 
   const armPendingRowDrop = useCallback(() => {
+    if (pendingRowDropRef.current) {
+      return;
+    }
+
     pendingRowDropRef.current = true;
     setPendingRowDrop(true);
     dropSecondsLeftRef.current = 0;
     setDropSecondsLeft(0);
     setPressureScore(score => score - WORD_WAVE_SIZE);
   }, []);
+
+  const applyPendingRowDropAfterInputGrace = useCallback(() => {
+    if (pendingDropTimerRef.current) {
+      clearTimeout(pendingDropTimerRef.current);
+    }
+
+    pendingDropTimerRef.current = setTimeout(() => {
+      pendingDropTimerRef.current = null;
+
+      if (
+        pendingRowDropRef.current &&
+        !isDraggingRef.current &&
+        !isResolvingRef.current
+      ) {
+        applyPendingRowDrop();
+      }
+    }, WORD_WAVE_DROP_INPUT_GRACE_MS);
+  }, [applyPendingRowDrop]);
 
   useEffect(() => {
     isResolvingRef.current = isResolving;
@@ -361,19 +412,26 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
         return;
       }
 
-      applyPendingRowDrop();
-      setPressureScore(score => score - WORD_WAVE_SIZE);
+      armPendingRowDrop();
+      applyPendingRowDropAfterInputGrace();
     }, 1000);
 
     return () => {
       clearInterval(timer);
     };
-  }, [applyPendingRowDrop, armPendingRowDrop]);
+  }, [
+    applyPendingRowDrop,
+    applyPendingRowDropAfterInputGrace,
+    armPendingRowDrop,
+  ]);
 
   useEffect(
     () => () => {
       if (resolveTimerRef.current) {
         clearTimeout(resolveTimerRef.current);
+      }
+      if (pendingDropTimerRef.current) {
+        clearTimeout(pendingDropTimerRef.current);
       }
     },
     [],
@@ -455,11 +513,12 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   };
 
   const handleSelectionRelease = () => {
+    isDraggingRef.current = false;
+
     if (isResolving) {
       return;
     }
 
-    isDraggingRef.current = false;
     const move = getMoveForPath(board, selectionRef.current);
 
     if (move && !isResolving) {
@@ -526,8 +585,20 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
         </View>
 
         <View
-          onStartShouldSetResponder={() => true}
+          onStartShouldSetResponder={() => {
+            if (isResolvingRef.current) {
+              return false;
+            }
+
+            isDraggingRef.current = true;
+            return true;
+          }}
           onMoveShouldSetResponder={() => true}
+          onTouchStart={() => {
+            if (!isResolvingRef.current) {
+              isDraggingRef.current = true;
+            }
+          }}
           onResponderGrant={event => {
             if (isResolving) {
               return;

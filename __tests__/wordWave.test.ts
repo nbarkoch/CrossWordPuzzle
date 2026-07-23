@@ -149,13 +149,28 @@ it('finds only straight selectable word wave moves', () => {
   });
 });
 
-it('uses an expanded word wave dictionary with many longer words', () => {
+it('uses a readable 4-6 letter word wave dictionary', () => {
   const dictionary = getWordWaveDictionary();
 
-  expect(dictionary.length).toBeGreaterThan(1400);
-  expect(dictionary.filter(word => word.length >= 5).length).toBeGreaterThan(900);
-  expect(dictionary.filter(word => word.length === 7).length).toBeGreaterThan(200);
-  expect(dictionary).toEqual(expect.arrayContaining(['BETTER', 'QUALITY', 'WORKING']));
+  expect(dictionary.length).toBeGreaterThan(9000);
+  expect(dictionary.every(word => word.length >= 4 && word.length <= 6)).toBe(
+    true,
+  );
+  expect(dictionary.filter(word => word.length === 4).length).toBeGreaterThan(
+    2000,
+  );
+  expect(dictionary.filter(word => word.length === 5).length).toBeGreaterThan(
+    3000,
+  );
+  expect(dictionary.filter(word => word.length === 6).length).toBeGreaterThan(
+    4000,
+  );
+  expect(dictionary).toEqual(
+    expect.arrayContaining(['NAME', 'EASY', 'CATS', 'VANE', 'BETTER']),
+  );
+  expect(dictionary).toEqual(
+    expect.not.arrayContaining(['JEFE', 'GAGA', 'SAE', 'NAM']),
+  );
 });
 
 it('generates varied boards with diagonal and longer words', () => {
