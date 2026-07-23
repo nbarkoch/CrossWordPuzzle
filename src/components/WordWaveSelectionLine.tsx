@@ -14,10 +14,11 @@ type WordWaveSelectionLineProps = {
   valid: boolean;
 };
 
-// Matches the game's line spring (GridContent animateDirection/LengthChange).
-const MOVE_SPRING = {mass: 0.5, damping: 12, stiffness: 90};
-const IN_SPRING = {mass: 0.5, damping: 12, stiffness: 90};
-const OUT_SPRING = {mass: 0.3, damping: 15, stiffness: 90};
+// Snappy line springs — high stiffness / low mass so movement, spawn and
+// removal all resolve quickly, with damping kept near-critical to avoid bounce.
+const MOVE_SPRING = {mass: 0.3, damping: 15, stiffness: 220};
+const IN_SPRING = {mass: 0.3, damping: 16, stiffness: 220};
+const OUT_SPRING = {mass: 0.25, damping: 18, stiffness: 240};
 
 // Soft violet while forming, green once the word is valid.
 const ACTIVE_COLOR = 'rgba(139,92,246,0.32)';
