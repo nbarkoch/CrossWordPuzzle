@@ -1,4 +1,11 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   GestureResponderEvent,
   Pressable,
@@ -9,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import Animated, {
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -49,6 +57,7 @@ type TileProps = {
   valid: boolean;
   hidden: boolean;
   spawnState?: WordWaveTileSpawnState;
+  onSpawnConsumed: (tileId: string) => void;
 };
 
 type WordWaveTileSpawnState = {
@@ -123,48 +132,69 @@ const Tile: React.FC<TileProps> = ({
   valid,
   hidden,
   spawnState,
+  onSpawnConsumed,
 }) => {
   const startPosition = spawnState?.startPosition;
-  const spawnTranslateY = useSharedValue(
-    startPosition ? (startPosition.row - row) * cellSize : 0,
+  const consumedSpawnIdRef = useRef<string | null>(null);
+  const translateX = useSharedValue(
+    (startPosition?.col ?? col) * cellSize,
+  );
+  const translateY = useSharedValue(
+    (startPosition?.row ?? row) * cellSize,
   );
   const letterTranslateX = useSharedValue(0);
   const letterOpacity = useSharedValue(1);
-  const tileAnimatedStyle = useAnimatedStyle(
-    () => ({
-      transform: [
-        {translateX: withSpring(col * cellSize, tileSpringConfig)},
-        {translateY: withSpring(row * cellSize, tileSpringConfig)},
-      ],
-    }),
-    [cellSize, col, row],
-  );
+  const tileAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{translateX: translateX.value}, {translateY: translateY.value}],
+  }));
   const letterAnimatedStyle = useAnimatedStyle(() => ({
     opacity: letterOpacity.value,
     transform: [{translateX: letterTranslateX.value}],
   }));
-  const spawnAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{translateY: spawnTranslateY.value}],
-  }));
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const targetX = col * cellSize;
+    const targetY = row * cellSize;
+
     if (!startPosition) {
-      spawnTranslateY.value = 0;
+      translateX.value = withSpring(targetX, tileSpringConfig);
+      translateY.value = withSpring(targetY, tileSpringConfig);
       return;
     }
 
-    spawnTranslateY.value = (startPosition.row - row) * cellSize;
-    spawnTranslateY.value = withDelay(
+    if (consumedSpawnIdRef.current === tile.id) {
+      translateX.value = withSpring(targetX, tileSpringConfig);
+      translateY.value = withSpring(targetY, tileSpringConfig);
+      return;
+    }
+
+    consumedSpawnIdRef.current = tile.id;
+    translateX.value = startPosition.col * cellSize;
+    translateY.value = startPosition.row * cellSize;
+    translateX.value = withDelay(
       spawnState.delayMs,
-      withSpring(0, tileSpringConfig),
+      withSpring(targetX, tileSpringConfig),
+    );
+    translateY.value = withDelay(
+      spawnState.delayMs,
+      withSpring(targetY, tileSpringConfig, finished => {
+        if (finished) {
+          runOnJS(onSpawnConsumed)(tile.id);
+        }
+      }),
     );
   }, [
     cellSize,
-    row,
+    col,
+    onSpawnConsumed,
     spawnState?.delayMs,
-    spawnTranslateY,
     startPosition,
+    startPosition?.col,
     startPosition?.row,
+    row,
+    tile.id,
+    translateX,
+    translateY,
   ]);
 
   useEffect(() => {
@@ -192,7 +222,6 @@ const Tile: React.FC<TileProps> = ({
       <Animated.View
         style={[
           styles.tile,
-          spawnAnimatedStyle,
           selected && styles.tileSelected,
           valid && styles.tileValid,
           hidden && styles.tileHidden,
@@ -229,6 +258,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   const newTileSpawnPositionsRef = useRef<Map<string, WordWaveTileSpawnState>>(
     new Map(),
   );
+  const [, setSpawnVersion] = useState(0);
   const {width} = useWindowDimensions();
   const boardSize = Math.min(width - 24, 380);
   const cellSize = boardSize / WORD_WAVE_SIZE;
@@ -401,6 +431,17 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     }
   };
 
+  const handleSpawnConsumed = useCallback((tileId: string) => {
+    if (!newTileSpawnPositionsRef.current.has(tileId)) {
+      return;
+    }
+
+    const nextSpawnPositions = new Map(newTileSpawnPositionsRef.current);
+    nextSpawnPositions.delete(tileId);
+    newTileSpawnPositionsRef.current = nextSpawnPositions;
+    setSpawnVersion(version => version + 1);
+  }, []);
+
   const highlightMove = (path: WordWavePosition[]) => {
     setSelectionPath(path);
   };
@@ -471,6 +512,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
                   valid={selected && Boolean(selectedMove)}
                   hidden={hidden}
                   spawnState={newTileSpawnPositionsRef.current.get(tile.id)}
+                  onSpawnConsumed={handleSpawnConsumed}
                 />
               );
             })}

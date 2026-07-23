@@ -1,4 +1,4 @@
-import {WORD_WAVE_WORDS} from '~/data/wordWaveWords';
+import {WORD_WAVE_COMMON_WORDS, WORD_WAVE_WORDS} from '~/data/wordWaveWords';
 
 export const WORD_WAVE_SIZE = 7;
 export const WORD_WAVE_MIN_WORD_LENGTH = 3;
@@ -145,15 +145,24 @@ const WORD_WAVE_DIRECTIONS: WordWaveDirection[] = [
 
 const normalizeWord = (word: string) => word.replace(/[^a-z]/gi, '').toUpperCase();
 
-const WORD_BANK = Array.from(
-  new Set(
-    WORD_WAVE_WORDS.map(normalizeWord).filter(
-      word =>
-        word.length >= WORD_WAVE_MIN_WORD_LENGTH &&
-        word.length <= WORD_WAVE_SIZE,
+const toWordBank = (words: string[]) =>
+  Array.from(
+    new Set(
+      words.map(normalizeWord).filter(
+        word =>
+          word.length >= WORD_WAVE_MIN_WORD_LENGTH &&
+          word.length <= WORD_WAVE_SIZE,
+      ),
     ),
-  ),
-);
+  );
+
+// Two tiers by design: the puzzle THINKS in common, recognizable words (board
+// seeding, hints, move detection, and the solvability guarantee all use
+// WORD_BANK) but ACCEPTS any valid dictionary word a player selects (see
+// VALIDATION_WORDS / isValidWordWaveSelection). This keeps generated boards
+// solvable with easy words while never rejecting a legitimate find.
+const WORD_BANK = toWordBank(WORD_WAVE_COMMON_WORDS);
+const VALIDATION_WORDS = new Set(toWordBank(WORD_WAVE_WORDS));
 
 const SEED_WORDS = WORD_BANK.filter(word => word.length >= 5);
 const WORDS_BY_LENGTH = WORD_BANK.reduce((groups, word) => {
@@ -486,7 +495,8 @@ export const isValidWordWaveSelection = (
     seen.add(positionKey(current));
   }
 
-  return WORDS.has(getWordFromPath(board, path));
+  // Accept any valid dictionary word, not just the common generation words.
+  return VALIDATION_WORDS.has(getWordFromPath(board, path));
 };
 
 export const findWordWaveMoves = (

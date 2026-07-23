@@ -171,7 +171,7 @@ it('generates varied boards with diagonal and longer words', () => {
   expect(new Set(moves.map(move => `${move.direction.dx}:${move.direction.dy}`)).size)
     .toBeGreaterThanOrEqual(4);
   expect(locationBucketCount).toBeGreaterThanOrEqual(6);
-  expect(getRepeatedCellPressure(moves)).toBeLessThanOrEqual(20);
+  expect(getRepeatedCellPressure(moves)).toBeLessThanOrEqual(12);
 });
 
 it('does not refill most next words into the same obvious cleared lane', () => {
@@ -213,11 +213,11 @@ it('does not refill most next words into the same obvious cleared lane', () => {
   );
 
   expect(uniqueMoves.length).toBeGreaterThanOrEqual(8);
-  // The full English dictionary makes most 3-letter tile triples valid words,
-  // so boards are inherently short-word-heavy (observed ~0.7 of unique moves).
-  // This guardrail now catches only genuinely degenerate short-word floods.
+  // Boards are generated from common words, but 3-letter tile triples are still
+  // often valid, so short words run higher than with the old themed dictionary
+  // (observed ~0.5 of unique moves). This guardrail catches degenerate floods.
   expect(shortMoves.length).toBeLessThanOrEqual(
-    Math.max(3, Math.floor(uniqueMoves.length * 0.85)),
+    Math.max(3, Math.floor(uniqueMoves.length * 0.72)),
   );
   expect(longDeepMoves.length).toBeGreaterThanOrEqual(2);
   expect(freshDominatedMoves.length).toBeLessThanOrEqual(
