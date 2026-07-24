@@ -6,12 +6,14 @@ import {
   getWordWaveDictionary,
   getWordWaveSelectionPath,
   refillWordWaveBoard,
+  WordWavePosition,
+} from '../src/utils/wordWave';
+import {
   searchWordWaveSurvivalCandidate,
   simulateWordWaveTimedGameplay,
   simulateWordWaveOpportunityHealth,
   simulateWordWaveSurvival,
-  WordWavePosition,
-} from '../src/utils/wordWave';
+} from '../src/utils/wordWaveAnalysis';
 
 const isStraightPath = (path: WordWavePosition[]) => {
   if (path.length <= 2) {
