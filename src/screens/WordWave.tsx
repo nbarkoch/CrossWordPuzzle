@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import Animated, {
+  Easing,
   FadeIn,
   FadeOut,
   LinearTransition,
@@ -20,6 +21,8 @@ import Animated, {
   withDelay,
   withSpring,
   withTiming,
+  ZoomIn,
+  ZoomOut,
 } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -43,6 +46,10 @@ import {
   WordWavePosition,
   WordWaveTile,
 } from '~/utils/wordWave';
+import {
+  loadWordWaveBestScore,
+  saveWordWaveBestScore,
+} from '~/utils/gameStorage';
 import {Banner} from '~/components/AdBanner';
 import {runOnJS} from 'react-native-worklets';
 
@@ -297,6 +304,9 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   const [runState, setRunState] = useState<WordWaveRunState>('ready');
   const [readyStepIndex, setReadyStepIndex] = useState(0);
   const [arcadeScore, setArcadeScore] = useState(0);
+  const [bestScore, setBestScore] = useState(0);
+  const [isNewBest, setIsNewBest] = useState(false);
+  const bestScoreRef = useRef(0);
   const [wordsFound, setWordsFound] = useState(0);
   const [currentWave, setCurrentWave] = useState(1);
   const [foundWords, setFoundWords] = useState<WordWaveFoundWord[]>([]);
@@ -484,7 +494,32 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     setIsResolving(false);
     setHiddenTileIds(new Set());
     setPendingRowDrop(false);
+    setIsNewBest(false);
   }, []);
+
+  // Load the persisted personal best once on mount.
+  useEffect(() => {
+    loadWordWaveBestScore().then(score => {
+      bestScoreRef.current = score;
+      setBestScore(score);
+    });
+  }, []);
+
+  // When a run ends, commit a new personal best if it was beaten.
+  useEffect(() => {
+    if (runState !== 'ended') {
+      return;
+    }
+
+    if (arcadeScore > bestScoreRef.current) {
+      bestScoreRef.current = arcadeScore;
+      setBestScore(arcadeScore);
+      setIsNewBest(true);
+      saveWordWaveBestScore(arcadeScore);
+    } else {
+      setIsNewBest(false);
+    }
+  }, [runState, arcadeScore]);
 
   const applyPendingRowDrop = useCallback(() => {
     if (pendingDropTimerRef.current) {
@@ -773,7 +808,8 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   const hasWord = selectedWord.length > 0;
   // A move that forms an already-used word is not acceptable — treat it as
   // invalid so the selection line reflects it and release rejects it.
-  const isSelectionValid = Boolean(selectedMove) && !usedWords.has(selectedWord);
+  const isSelectionValid =
+    Boolean(selectedMove) && !usedWords.has(selectedWord);
 
   return (
     <View style={styles.container}>
@@ -931,18 +967,23 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
               <Text style={styles.wordsEmpty}>No words available</Text>
             ) : (
               visibleWords.map(move => (
-                <Pressable
-                  key={`${move.word}:${move.path
-                    .map(position => `${position.row}-${position.col}`)
-                    .join('.')}`}
-                  onPress={() => highlightMove(move.path)}
-                  style={({pressed}) => [
-                    styles.wordChip,
-                    selectedWord === move.word && styles.wordChipSelected,
-                    pressed && styles.wordChipPressed,
-                  ]}>
-                  <Text style={styles.wordChipText}>{move.word}</Text>
-                </Pressable>
+                <Animated.View
+                  key={move.word}
+                  layout={LinearTransition.duration(300).easing(
+                    Easing.bezier(0.3, 0.0, 0.1, 1).factory(),
+                  )}
+                  entering={ZoomIn.duration(220)}
+                  exiting={ZoomOut.duration(160)}>
+                  <Pressable
+                    onPress={() => highlightMove(move.path)}
+                    style={({pressed}) => [
+                      styles.wordChip,
+                      selectedWord === move.word && styles.wordChipSelected,
+                      pressed && styles.wordChipPressed,
+                    ]}>
+                    <Text style={styles.wordChipText}>{move.word}</Text>
+                  </Pressable>
+                </Animated.View>
               ))
             )}
           </ScrollView>
@@ -972,23 +1013,27 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
         <View style={styles.summaryBackdrop}>
           <View style={styles.summaryDialog}>
             <Text style={styles.summaryTitle}>Run Complete</Text>
+            {isNewBest && (
+              <Text style={styles.summaryNewBest}>🎉 New Best Score!</Text>
+            )}
             <View style={styles.summaryStatsRow}>
               <View style={styles.summaryStat}>
                 <Text style={styles.summaryValue}>{arcadeScore}</Text>
                 <Text style={styles.summaryLabel}>Score</Text>
               </View>
               <View style={styles.summaryStat}>
-                <Text style={styles.summaryValue}>{wordsFound}</Text>
-                <Text style={styles.summaryLabel}>Words</Text>
-              </View>
-              <View style={styles.summaryStat}>
-                <Text style={styles.summaryValue}>
-                  {foundWords.reduce(
-                    (longest, item) => Math.max(longest, item.word.length),
-                    0,
-                  )}
+                <Text
+                  style={[
+                    styles.summaryValue,
+                    isNewBest && styles.summaryValueHighlight,
+                  ]}>
+                  {bestScore}
                 </Text>
                 <Text style={styles.summaryLabel}>Best</Text>
+              </View>
+              <View style={styles.summaryStat}>
+                <Text style={styles.summaryValue}>{wordsFound}</Text>
+                <Text style={styles.summaryLabel}>Words</Text>
               </View>
             </View>
             <FlatList
@@ -1300,6 +1345,18 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '900',
     textAlign: 'center',
+  },
+  summaryNewBest: {
+    color: '#C026D3',
+    fontSize: 14,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginTop: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  summaryValueHighlight: {
+    color: '#C026D3',
   },
   summaryStatsRow: {
     flexDirection: 'row',

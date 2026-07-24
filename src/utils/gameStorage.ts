@@ -22,6 +22,27 @@ const STORAGE_KEYS: Record<SavedGameMode, string> = {
   daily: '@saved_game/daily',
 };
 
+const WORD_WAVE_BEST_SCORE_KEY = '@word_wave/best_score';
+
+export const loadWordWaveBestScore = async (): Promise<number> => {
+  try {
+    const raw = await AsyncStorage.getItem(WORD_WAVE_BEST_SCORE_KEY);
+    const value = raw ? Number(raw) : 0;
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  } catch (error) {
+    console.error('Failed to load Word Wave best score:', error);
+    return 0;
+  }
+};
+
+export const saveWordWaveBestScore = async (score: number): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(WORD_WAVE_BEST_SCORE_KEY, String(score));
+  } catch (error) {
+    console.error('Failed to save Word Wave best score:', error);
+  }
+};
+
 export const loadSavedGame = async (
   mode: SavedGameMode,
 ): Promise<SavedGame | null> => {
