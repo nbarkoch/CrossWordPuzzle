@@ -1102,6 +1102,14 @@ const getInjectionOptionScore = (
   const sameLanePenalty = isSameClearedLaneMove(move, context) ? 700 : 0;
   const shortPenalty = option.word.length <= 3 ? 90 : 0;
   const areaScore = getMoveAreaScore(move);
+  // A refilled word that lives almost entirely in the just-emptied cells is a
+  // gift: the player watches a whole new word drop straight into the gap. Push
+  // fresh-dominated placements down hard so the injector favours words that
+  // weave through letters already on the board instead of spelling themselves
+  // out in the fresh column(s).
+  const freshRatio =
+    option.path.length > 0 ? freshCells / option.path.length : 0;
+  const freshDominancePenalty = freshRatio > 0.5 ? (freshRatio - 0.5) * 1600 : 0;
 
   return (
     option.word.length * option.word.length * 16 +
@@ -1114,7 +1122,8 @@ const getInjectionOptionScore = (
     topBandPenalty -
     horizontalPenalty -
     sameLanePenalty -
-    shortPenalty
+    shortPenalty -
+    freshDominancePenalty
   );
 };
 
@@ -1166,6 +1175,12 @@ const getSmartInjectionOptions = (
           if (
             freshCells === 0 ||
             existingCells === 0 ||
+            // Reject placements that would drop a near-complete new word into the
+            // gap. Requiring the fresh cells to stay close to the existing ones
+            // (at most one more) keeps the injected word anchored to the board
+            // the player already sees, so refills read as harder puzzles rather
+            // than free words appearing in the just-cleared cells.
+            freshCells - existingCells >= 2 ||
             !path.some(position => position.row >= 3)
           ) {
             continue;
