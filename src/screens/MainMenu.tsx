@@ -14,6 +14,7 @@ import ContinueGameDialog from '~/components/dialogs/ContinueGameDialog';
 
 import SmallStar from '~/components/decorations/star';
 import MenuButton from '~/components/MenuButton';
+import {Banner} from '~/components/AdBanner';
 
 type MainMenuProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MainMenu'>;
@@ -188,6 +189,8 @@ const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'center',
+    paddingBottom: 50 + Banner.height,
   },
   titleContainer: {
     alignItems: 'center',
@@ -197,6 +200,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 250,
     marginTop: 20,
+    marginBottom: -20,
   },
   subtitleBadge: {
     backgroundColor: '#5F28B4',
