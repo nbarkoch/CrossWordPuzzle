@@ -45,7 +45,7 @@ function MenuButton({
               colors={['#FDFBFE', '#EEDCFD']}>
               <View style={styles.iconRing}>
                 <View style={styles.iconCircle}>
-                  <Image style={styles.icon} source={image} />
+                  <Image resizeMode="cover" style={styles.icon} source={image} />
                 </View>
               </View>
               <View style={styles.textColumn}>
@@ -116,6 +116,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 3},
     shadowRadius: 1,
     elevation: 2,
+    alignSelf: "center"
   },
   iconCircle: {
     backgroundColor: '#723BD7',
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
   textColumn: {
     flex: 1,
     paddingVertical: 10,
-    paddingStart: 5,
+    paddingHorizontal: 5,
     gap: 5,
   },
   title: {
@@ -144,7 +145,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   arrowColumn: {
-    padding: 10,
+    paddingEnd: 10,
+    paddingVertical: 10,
     alignItems: 'center',
     flexDirection: 'row',
   },
