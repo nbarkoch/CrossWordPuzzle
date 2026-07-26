@@ -55,6 +55,8 @@ import {runOnJS} from 'react-native-worklets';
 
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 
+const cheat = false;
+
 type WordWaveProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'WordWave'>;
 };
@@ -949,16 +951,18 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
         <View style={styles.wordsPanel}>
           <View style={styles.wordsHeader}>
             <Text style={styles.panelLabel}>Words To Reveal</Text>
-            <Pressable
-              disabled={visibleWords.length === 0}
-              onPress={highlightNextMove}
-              style={({pressed}) => [
-                styles.hintButton,
-                visibleWords.length === 0 && styles.hintButtonDisabled,
-                pressed && styles.clearButtonPressed,
-              ]}>
-              <Text style={styles.hintButtonText}>Highlight</Text>
-            </Pressable>
+            {cheat && (
+              <Pressable
+                disabled={visibleWords.length === 0}
+                onPress={highlightNextMove}
+                style={({pressed}) => [
+                  styles.hintButton,
+                  visibleWords.length === 0 && styles.hintButtonDisabled,
+                  pressed && styles.clearButtonPressed,
+                ]}>
+                <Text style={styles.hintButtonText}>Highlight</Text>
+              </Pressable>
+            )}
           </View>
           <ScrollView
             contentContainerStyle={styles.wordsWrap}
@@ -976,6 +980,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
                   exiting={ZoomOut.duration(160)}>
                   <Pressable
                     onPress={() => highlightMove(move.path)}
+                    disabled={!cheat}
                     style={({pressed}) => [
                       styles.wordChip,
                       selectedWord === move.word && styles.wordChipSelected,
@@ -1091,7 +1096,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 5,
     paddingTop: 10,
     paddingBottom: 14,
   },
@@ -1236,7 +1241,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: Banner.height - 5,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(255,255,255, 0.3)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
     padding: 12,
