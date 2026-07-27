@@ -27,12 +27,41 @@ import {Banner} from '~/components/AdBanner';
 import {CATEGORIES_ICONS} from '~/utils/consts';
 import {RouteProp, useRoute} from '@react-navigation/native';
 import {prepareGrid} from '~/utils/gridGenerationCache';
+import DialogButton from '~/components/dialogs/DialogButton';
+import GradientSurface, {
+  GRADIENT_VARIANTS,
+} from '~/components/dialogs/GradientSurface';
+import SmallStar from '~/components/decorations/star';
 
 const {width} = Dimensions.get('window');
-const ITEM_SPACING = 10;
+const ITEM_SPACING = 15;
 const ITEMS_PER_ROW = 3;
 const ITEM_WIDTH =
-  (width - 40 - ITEM_SPACING * (ITEMS_PER_ROW - 1)) / ITEMS_PER_ROW;
+  (width - 40 - 48 - ITEM_SPACING * (ITEMS_PER_ROW - 1)) / ITEMS_PER_ROW;
+
+const SectionHeader = ({title}: {title: string}) => (
+  <View style={styles.sectionHeader}>
+    <Text style={styles.sectionTitle}>{title}</Text>
+  </View>
+);
+
+const Decoration = () => (
+  <View style={styles.divider}>
+    <LinearGradient
+      start={{x: 0, y: 0}}
+      end={{x: 1, y: 0}}
+      colors={['#F6EEFD', '#D9BCFC']}
+      style={styles.dividerLine}
+    />
+    <SmallStar size={12} color="#D9BCFC" />
+    <LinearGradient
+      start={{x: 0, y: 0}}
+      end={{x: 1, y: 0}}
+      colors={['#D9BCFC', '#F6EEFD']}
+      style={styles.dividerLine}
+    />
+  </View>
+);
 
 const CategoryItem = ({
   category,
@@ -48,7 +77,7 @@ const CategoryItem = ({
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        scale: withSpring(isSelected ? 1.1 : 1, {
+        scale: withSpring(isSelected ? 1.06 : 1, {
           mass: 0.5,
           damping: 12,
           stiffness: 90,
@@ -57,22 +86,33 @@ const CategoryItem = ({
     ],
   }));
 
+  const variant = isSelected ? 'primary' : 'third';
+
   return (
     <Animated.View
-      entering={FadeInDown.delay(index * 100)}
+      entering={FadeInDown.delay(index * 60)}
       style={[styles.categoryContainer, animatedStyle]}>
-      <LinearGradient
-        colors={
-          isSelected
-            ? ['#e77cff', '#d93cfc']
-            : ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.1)']
-        }
-        style={styles.categoryGradient}>
-        <TouchableOpacity onPress={onSelect} style={styles.categoryButton}>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={onSelect}
+        style={[
+          styles.cardShadow,
+          isSelected ? styles.cardShadowSelected : styles.cardShadowIdle,
+        ]}>
+        <GradientSurface
+          variant={variant}
+          radius={14}
+          contentStyle={styles.categoryFace}>
           <Text style={styles.categoryEmoji}>{CATEGORIES_ICONS[category]}</Text>
-          <Text style={styles.categoryText}>{category}</Text>
-        </TouchableOpacity>
-      </LinearGradient>
+          <Text
+            style={[
+              styles.categoryText,
+              {color: GRADIENT_VARIANTS[variant].textColor},
+            ]}>
+            {category}
+          </Text>
+        </GradientSurface>
+      </TouchableOpacity>
     </Animated.View>
   );
 };
@@ -102,85 +142,107 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
     navigation.navigate('Game', {...params, mode});
   }
 
+  const canPlay = Boolean(selectedCategory && selectedSize);
+
   return (
-    <LinearGradient colors={['#994CFD', '#6F54FB']} style={styles.container}>
-      <NavigationBar title="Word Search" onBack={() => navigation.goBack()} />
+    <LinearGradient colors={['#4B21A6', '#8043E9']} style={styles.container}>
+      <NavigationBar title="New Game" onBack={() => navigation.goBack()} />
 
       <View style={styles.content}>
-        <Text style={styles.subtitle}>Choose a category and puzzle size</Text>
-
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}>
-          <View style={styles.categoriesGrid}>
-            {CATEGORIES.map((category, index) => (
-              <CategoryItem
-                key={category}
-                category={category}
-                index={index}
-                isSelected={selectedCategory === category}
-                onSelect={() => setSelectedCategory(category)}
-              />
-            ))}
-          </View>
-        </ScrollView>
-
-        <View style={styles.bottomContainer}>
-          <LinearGradient
-            colors={['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.1)']}
-            style={styles.sizesContainer}>
-            <Text style={styles.sectionTitle}>Puzzle Size</Text>
-            <View style={styles.sizesGrid}>
-              {GRID_TYPE_SIZES.map(size => {
-                const {rows, cols} = GRID_SIZES[size];
-                return (
-                  <TouchableOpacity
-                    key={size}
-                    style={[
-                      styles.sizeButton,
-                      selectedSize === size && styles.selectedSizeButton,
-                    ]}
-                    onPress={() => setSelectedSize(size)}>
-                    <LinearGradient
-                      colors={
-                        selectedSize === size
-                          ? ['#e77cff', '#d93cfc']
-                          : ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.1)']
-                      }
-                      style={styles.sizeButtonGradient}>
-                      <Text style={styles.sizeName}>{size}</Text>
-                      <Text style={styles.sizeDescription}>
-                        {cols}x{rows} grid
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                );
-              })}
+        <LinearGradient
+          colors={['#A273F9', '#9559F7']}
+          style={styles.cardBorder}>
+          <View style={styles.card}>
+            <View style={styles.titleRow}>
+              <SmallStar size={16} color="#B98BF5" />
+              <Text style={styles.title}>Choose Your Puzzle</Text>
+              <SmallStar size={16} color="#B98BF5" />
             </View>
-          </LinearGradient>
 
-          <TouchableOpacity
-            style={[
-              styles.playButton,
-              (!selectedCategory || !selectedSize) && styles.playButtonDisabled,
-            ]}
-            disabled={!selectedCategory || !selectedSize}
-            onPress={() =>
-              selectedCategory &&
-              selectedSize &&
-              onStart({category: selectedCategory, blockSize: selectedSize})
-            }>
-            <LinearGradient
-              colors={
-                selectedCategory && selectedSize
-                  ? ['#e77cff', '#d93cfc']
-                  : ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.1)']
-              }
-              style={styles.playButtonGradient}>
-              <Text style={styles.playButtonText}>Play Game</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
+            <View style={styles.scrollViewW}>
+              <Decoration />
+              <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}>
+                <SectionHeader title="Category" />
+                <View style={styles.categoriesGrid}>
+                  {CATEGORIES.map((category, index) => (
+                    <CategoryItem
+                      key={category}
+                      category={category}
+                      index={index}
+                      isSelected={selectedCategory === category}
+                      onSelect={() => setSelectedCategory(category)}
+                    />
+                  ))}
+                </View>
+              </ScrollView>
+
+              <View style={styles.playRow}>
+                <SectionHeader title="Puzzle Size" />
+
+                <View style={styles.sizesGrid}>
+                  {GRID_TYPE_SIZES.map(size => {
+                    const {rows, cols} = GRID_SIZES[size];
+                    const isSelected = selectedSize === size;
+                    const variant = isSelected ? 'primary' : 'secondary';
+                    return (
+                      <TouchableOpacity
+                        key={size}
+                        activeOpacity={0.85}
+                        style={[
+                          styles.sizeButton,
+                          styles.cardShadow,
+                          isSelected
+                            ? styles.cardShadowSelected
+                            : styles.cardShadowIdle,
+                        ]}
+                        onPress={() => setSelectedSize(size)}>
+                        <GradientSurface
+                          variant={variant}
+                          radius={14}
+                          contentStyle={styles.sizeFace}>
+                          <Text
+                            style={[
+                              styles.sizeName,
+                              {color: GRADIENT_VARIANTS[variant].textColor},
+                            ]}>
+                            {size}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.sizeDescription,
+                              isSelected
+                                ? styles.sizeDescriptionSelected
+                                : styles.sizeDescriptionIdle,
+                            ]}>
+                            {cols}x{rows}
+                          </Text>
+                        </GradientSurface>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <Decoration />
+                <DialogButton
+                  type="primary"
+                  text="Play Game"
+                  fullWidth
+                  disabled={!canPlay}
+                  onPress={() =>
+                    selectedCategory &&
+                    selectedSize &&
+                    onStart({
+                      category: selectedCategory,
+                      blockSize: selectedSize,
+                    })
+                  }
+                />
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
       </View>
     </LinearGradient>
   );
@@ -192,114 +254,169 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    padding: 16,
+    paddingBottom: Banner.height + 20,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#E5E7EB',
+  cardBorder: {
+    flex: 1,
+    borderRadius: 30,
+    padding: 5,
+    borderWidth: 1,
+    borderColor: '#5d25a296',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowRadius: 8,
+  },
+  card: {
+    flex: 1,
+    borderRadius: 24,
+    backgroundColor: '#F6EEFD',
+    paddingTop: 20,
+    gap: 14,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#2F1172',
     textAlign: 'center',
-    marginBottom: 16,
-    opacity: 0.8,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 30,
+  },
+  dividerLine: {
+    height: 1,
+    flex: 1,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  badgeIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#7946ED',
+  },
+  badgeDots: {
+    width: 18,
+    height: 18,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignContent: 'space-between',
+  },
+  badgeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FBFAFF',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#331378',
+  },
+  scrollViewW: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    padding: 18,
   },
   categoriesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: ITEM_SPACING,
   },
   categoryContainer: {
     width: ITEM_WIDTH,
-    marginBottom: ITEM_SPACING,
-    overflow: 'visible',
   },
-  categoryGradient: {
-    borderRadius: 12,
-    padding: 1,
+  cardShadow: {
+    borderRadius: 16,
+    shadowOffset: {width: 0, height: 3},
   },
-  categoryButton: {
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
+  cardShadowIdle: {
+    shadowColor: '#7445E1',
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardShadowSelected: {
+    shadowColor: '#C026D3',
+    shadowOpacity: 0.45,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  categoryFace: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
   },
   categoryEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
+    fontSize: 28,
+    marginBottom: 6,
   },
   categoryText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'white',
+    fontSize: 13,
+    fontWeight: '700',
     textAlign: 'center',
     textTransform: 'capitalize',
   },
-  bottomContainer: {
-    gap: 16,
-    padding: 20,
-    paddingBottom: Banner.height + 30,
-  },
-  sizesContainer: {
-    borderRadius: 12,
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: 16,
+  sizesSpacing: {
+    marginTop: 20,
   },
   sizesGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
+    gap: ITEM_SPACING,
   },
   sizeButton: {
     flex: 1,
-    borderRadius: 8,
-    overflow: 'hidden',
   },
-  sizeButtonGradient: {
-    padding: 12,
-    alignItems: 'center',
-  },
-  selectedSizeButton: {
-    transform: [{scale: 1.05}],
+  sizeFace: {
+    paddingVertical: 16,
+    paddingHorizontal: 8,
   },
   sizeName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
+    fontSize: 17,
+    fontWeight: '800',
     textTransform: 'capitalize',
   },
   sizeDescription: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 4,
+    fontWeight: '600',
+    marginTop: 2,
   },
-  playButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginTop: 8,
+  sizeDescriptionIdle: {
+    color: '#6E45D0a0',
   },
-  playButtonDisabled: {
-    opacity: 0.5,
+  sizeDescriptionSelected: {
+    color: 'rgba(255,255,255,0.85)',
   },
-  playButtonGradient: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playButtonText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: {width: 1, height: 1},
-    textShadowRadius: 2,
+  playRow: {
+    paddingHorizontal: 15,
+    paddingBottom: 15,
+    paddingTop: 15,
+    gap: 15,
+    borderTopWidth: 1,
+    borderColor: '#b98bf55a',
+    borderTopRightRadius: 20,
+    borderTopLeftRadius: 20,
   },
 });
 
