@@ -9,13 +9,7 @@ import {
   ScrollView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Animated, {
-  FadeInDown,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
 import {RootStackParamList} from './Navigation';
-import NavigationBar from '~/components/NavigationBar';
 import {GRID_SIZES} from '~/utils/blockCalcs';
 import {
   CATEGORIES,
@@ -28,20 +22,32 @@ import {CATEGORIES_ICONS} from '~/utils/consts';
 import {RouteProp, useRoute} from '@react-navigation/native';
 import {prepareGrid} from '~/utils/gridGenerationCache';
 import DialogButton from '~/components/dialogs/DialogButton';
-import GradientSurface, {
-  GRADIENT_VARIANTS,
-} from '~/components/dialogs/GradientSurface';
+import {GRADIENT_VARIANTS} from '~/components/dialogs/GradientSurface';
+import SelectableCard from '~/components/SelectableCard';
 import SmallStar from '~/components/decorations/star';
+import {ArrowLeft} from '~/components/decorations/arrows';
 
 const {width} = Dimensions.get('window');
-const ITEM_SPACING = 15;
+const ITEM_SPACING = 12;
 const ITEMS_PER_ROW = 3;
+// Horizontal chrome per side: screen padding (16) + card border (5+1) + list
+// padding (18) = 40. Keep this in sync with the styles below.
+const SIDE_INSET = 40;
 const ITEM_WIDTH =
-  (width - 40 - 48 - ITEM_SPACING * (ITEMS_PER_ROW - 1)) / ITEMS_PER_ROW;
+  (width - SIDE_INSET * 2 - ITEM_SPACING * (ITEMS_PER_ROW - 1)) / ITEMS_PER_ROW;
+
+// Visual dot-matrix dimension per puzzle tier — denser grids read as "bigger".
+const PREVIEW_DIMS: Record<GridSize, number> = {
+  small: 3,
+  medium: 4,
+  large: 5,
+};
 
 const SectionHeader = ({title}: {title: string}) => (
   <View style={styles.sectionHeader}>
+    <SmallStar size={12} color="#C6A4F2" />
     <Text style={styles.sectionTitle}>{title}</Text>
+    <SmallStar size={12} color="#C6A4F2" />
   </View>
 );
 
@@ -63,6 +69,21 @@ const Decoration = () => (
   </View>
 );
 
+const GridPreview = ({dim, color}: {dim: number; color: string}) => (
+  <View style={styles.gridPreview}>
+    {Array.from({length: dim}).map((_row, r) => (
+      <View key={r} style={styles.gridPreviewRow}>
+        {Array.from({length: dim}).map((_col, c) => (
+          <View
+            key={c}
+            style={[styles.gridPreviewDot, {backgroundColor: color}]}
+          />
+        ))}
+      </View>
+    ))}
+  </View>
+);
+
 const CategoryItem = ({
   category,
   index,
@@ -73,49 +94,27 @@ const CategoryItem = ({
   index: number;
   isSelected: boolean;
   onSelect: () => void;
-}) => {
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        scale: withSpring(isSelected ? 1.06 : 1, {
-          mass: 0.5,
-          damping: 12,
-          stiffness: 90,
-        }),
-      },
-    ],
-  }));
-
-  const variant = isSelected ? 'primary' : 'third';
-
-  return (
-    <Animated.View
-      entering={FadeInDown.delay(index * 60)}
-      style={[styles.categoryContainer, animatedStyle]}>
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={onSelect}
-        style={[
-          styles.cardShadow,
-          isSelected ? styles.cardShadowSelected : styles.cardShadowIdle,
-        ]}>
-        <GradientSurface
-          variant={variant}
-          radius={14}
-          contentStyle={styles.categoryFace}>
-          <Text style={styles.categoryEmoji}>{CATEGORIES_ICONS[category]}</Text>
-          <Text
-            style={[
-              styles.categoryText,
-              {color: GRADIENT_VARIANTS[variant].textColor},
-            ]}>
-            {category}
-          </Text>
-        </GradientSurface>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-};
+}) => (
+  <SelectableCard
+    isSelected={isSelected}
+    onPress={onSelect}
+    index={index}
+    containerStyle={styles.categoryContainer}
+    contentStyle={styles.categoryFace}>
+    {variant => (
+      <>
+        <Text style={styles.categoryEmoji}>{CATEGORIES_ICONS[category]}</Text>
+        <Text
+          style={[
+            styles.categoryText,
+            {color: GRADIENT_VARIANTS[variant].textColor},
+          ]}>
+          {category}
+        </Text>
+      </>
+    )}
+  </SelectableCard>
+);
 
 type GameOptionsProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'GameOptions'>;
@@ -145,64 +144,71 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
   const canPlay = Boolean(selectedCategory && selectedSize);
 
   return (
-    <LinearGradient colors={['#4B21A6', '#8043E9']} style={styles.container}>
-      <NavigationBar title="New Game" onBack={() => navigation.goBack()} />
+    <LinearGradient colors={['#4B21A6', '#7E43E4']} style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}>
+          <ArrowLeft size={30} stroke="white" />
+        </TouchableOpacity>
+
+        <View style={styles.titleBlock}>
+          <View style={styles.titleStarLeft}>
+            <SmallStar size={14} color="#FFFFFF" />
+          </View>
+          <View style={styles.titleStarRight}>
+            <SmallStar size={12} color="#FFFFFF" />
+          </View>
+          <Text style={styles.titleNew}>NEW GAME</Text>
+        </View>
+
+        <View style={{height: 50, width: 50}} />
+      </View>
 
       <View style={styles.content}>
         <LinearGradient
           colors={['#A273F9', '#9559F7']}
           style={styles.cardBorder}>
           <View style={styles.card}>
-            <View style={styles.titleRow}>
-              <SmallStar size={16} color="#B98BF5" />
-              <Text style={styles.title}>Choose Your Puzzle</Text>
-              <SmallStar size={16} color="#B98BF5" />
-            </View>
+            <SectionHeader title="Choose Category" />
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}>
+              <View style={styles.categoriesGrid}>
+                {CATEGORIES.map((category, index) => (
+                  <CategoryItem
+                    key={category}
+                    category={category}
+                    index={index}
+                    isSelected={selectedCategory === category}
+                    onSelect={() => setSelectedCategory(category)}
+                  />
+                ))}
+              </View>
+            </ScrollView>
 
-            <View style={styles.scrollViewW}>
-              <Decoration />
-              <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}>
-                <SectionHeader title="Category" />
-                <View style={styles.categoriesGrid}>
-                  {CATEGORIES.map((category, index) => (
-                    <CategoryItem
-                      key={category}
-                      category={category}
-                      index={index}
-                      isSelected={selectedCategory === category}
-                      onSelect={() => setSelectedCategory(category)}
-                    />
-                  ))}
-                </View>
-              </ScrollView>
+            <View style={styles.bottomSection}>
+              <SectionHeader title="Choose Puzzle Size" />
 
-              <View style={styles.playRow}>
-                <SectionHeader title="Puzzle Size" />
-
-                <View style={styles.sizesGrid}>
-                  {GRID_TYPE_SIZES.map(size => {
-                    const {rows, cols} = GRID_SIZES[size];
-                    const isSelected = selectedSize === size;
-                    const variant = isSelected ? 'primary' : 'secondary';
-                    return (
-                      <TouchableOpacity
-                        key={size}
-                        activeOpacity={0.85}
-                        style={[
-                          styles.sizeButton,
-                          styles.cardShadow,
-                          isSelected
-                            ? styles.cardShadowSelected
-                            : styles.cardShadowIdle,
-                        ]}
-                        onPress={() => setSelectedSize(size)}>
-                        <GradientSurface
-                          variant={variant}
-                          radius={14}
-                          contentStyle={styles.sizeFace}>
+              <View style={styles.sizesGrid}>
+                {GRID_TYPE_SIZES.map(size => {
+                  const {rows, cols} = GRID_SIZES[size];
+                  const isSelected = selectedSize === size;
+                  return (
+                    <SelectableCard
+                      key={size}
+                      isSelected={isSelected}
+                      onPress={() => setSelectedSize(size)}
+                      containerStyle={styles.sizeButton}
+                      contentStyle={styles.sizeFace}>
+                      {variant => (
+                        <>
+                          <GridPreview
+                            dim={PREVIEW_DIMS[size]}
+                            color={isSelected ? '#FFFFFF' : '#9873DE'}
+                          />
                           <Text
                             style={[
                               styles.sizeName,
@@ -219,11 +225,14 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
                             ]}>
                             {cols}x{rows}
                           </Text>
-                        </GradientSurface>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                        </>
+                      )}
+                    </SelectableCard>
+                  );
+                })}
+              </View>
+
+              <View>
                 <Decoration />
                 <DialogButton
                   type="primary"
@@ -252,9 +261,55 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 8,
+    paddingLeft: 5,
+    aspectRatio: 1,
+    borderRadius: 50,
+    height: 50,
+    width: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
+  titleBlock: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  titleStarLeft: {
+    position: 'absolute',
+    left: -34,
+    top: 2,
+    opacity: 0.9,
+  },
+  titleStarRight: {
+    position: 'absolute',
+    right: -30,
+    top: 12,
+    opacity: 0.8,
+  },
+  titleNew: {
+    color: '#FFFFFF',
+    fontSize: 34,
+    fontWeight: '900',
+    letterSpacing: 2,
+    textShadowColor: 'rgba(46,17,114,0.6)',
+    textShadowOffset: {width: 0, height: 3},
+    textShadowRadius: 4,
+  },
   content: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 16,
     paddingBottom: Banner.height + 20,
   },
   cardBorder: {
@@ -272,26 +327,15 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 24,
     backgroundColor: '#F6EEFD',
+    overflow: 'hidden',
     paddingTop: 20,
-    gap: 14,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#2F1172',
-    textAlign: 'center',
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 30,
+    paddingHorizontal: 20,
+    marginBottom: 16,
   },
   dividerLine: {
     height: 1,
@@ -300,45 +344,24 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
-  },
-  badgeIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 11,
-    alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#7946ED',
-  },
-  badgeDots: {
-    width: 18,
-    height: 18,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignContent: 'space-between',
-  },
-  badgeDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#FBFAFF',
+    gap: 10,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
-    color: '#331378',
-  },
-  scrollViewW: {
-    flex: 1,
+    color: '#4B2491',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 18,
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    paddingBottom: 12,
   },
   categoriesGrid: {
     flexDirection: 'row',
@@ -348,49 +371,57 @@ const styles = StyleSheet.create({
   categoryContainer: {
     width: ITEM_WIDTH,
   },
-  cardShadow: {
-    borderRadius: 16,
-    shadowOffset: {width: 0, height: 3},
-  },
-  cardShadowIdle: {
-    shadowColor: '#7445E1',
-    shadowOpacity: 0.18,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  cardShadowSelected: {
-    shadowColor: '#C026D3',
-    shadowOpacity: 0.45,
-    shadowRadius: 6,
-    elevation: 5,
-  },
   categoryFace: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingVertical: 18,
+    paddingHorizontal: 6,
   },
   categoryEmoji: {
-    fontSize: 28,
-    marginBottom: 6,
+    fontSize: 40,
+    marginBottom: 8,
   },
   categoryText: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
     textAlign: 'center',
     textTransform: 'capitalize',
   },
-  sizesSpacing: {
-    marginTop: 20,
+  bottomSection: {
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 18,
+    borderTopWidth: 1,
+    borderColor: '#E4D3FA',
+    backgroundColor: '#F0E4FD',
   },
   sizesGrid: {
     flexDirection: 'row',
     gap: ITEM_SPACING,
+    paddingTop: 10,
+    paddingBottom: 20,
   },
   sizeButton: {
     flex: 1,
   },
   sizeFace: {
-    paddingVertical: 16,
-    paddingHorizontal: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+    gap: 8,
+  },
+  gridPreview: {
+    gap: 3,
+    height: 50,
+    width: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridPreviewRow: {
+    flexDirection: 'row',
+    gap: 3,
+  },
+  gridPreviewDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 1.5,
   },
   sizeName: {
     fontSize: 17,
@@ -399,24 +430,14 @@ const styles = StyleSheet.create({
   },
   sizeDescription: {
     fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
+    fontWeight: '700',
+    marginTop: -2,
   },
   sizeDescriptionIdle: {
-    color: '#6E45D0a0',
+    color: '#9873DE',
   },
   sizeDescriptionSelected: {
-    color: 'rgba(255,255,255,0.85)',
-  },
-  playRow: {
-    paddingHorizontal: 15,
-    paddingBottom: 15,
-    paddingTop: 15,
-    gap: 15,
-    borderTopWidth: 1,
-    borderColor: '#b98bf55a',
-    borderTopRightRadius: 20,
-    borderTopLeftRadius: 20,
+    color: 'rgba(255,255,255,0.9)',
   },
 });
 
