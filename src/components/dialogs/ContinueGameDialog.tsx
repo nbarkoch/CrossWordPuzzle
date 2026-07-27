@@ -11,6 +11,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Animated, {FadeInDown, ZoomIn} from 'react-native-reanimated';
 import {CATEGORIES_ICONS} from '~/utils/consts';
 import {CategorySelection, GridSize} from '~/utils/types';
+import DialogButton from './DialogButton';
 
 const {width} = Dimensions.get('window');
 
@@ -53,51 +54,42 @@ const ContinueGameDialog: React.FC<ContinueGameDialogProps> = ({
             <LinearGradient
               colors={['#994CFD', '#6F54FB']}
               style={styles.dialogGradient}>
-              <Text style={styles.title}>Continue your game?</Text>
+              <View style={styles.dialogContent}>
+                <Text style={styles.title}>Continue your game?</Text>
 
-              <Animated.View
-                entering={FadeInDown.delay(150)}
-                style={styles.detailsCard}>
-                <Text style={styles.categoryEmoji}>
-                  {CATEGORIES_ICONS[category]}
-                </Text>
-                <View style={styles.detailsText}>
-                  <Text style={styles.categoryName}>{category}</Text>
-                  <Text style={styles.metaText}>{gridSize} grid</Text>
-                </View>
-                <View style={styles.progressBadge}>
-                  <Text style={styles.progressCount}>
-                    {wordsFound}/{totalWords}
+                <Animated.View
+                  entering={FadeInDown.delay(150)}
+                  style={styles.detailsCard}>
+                  <Text style={styles.categoryEmoji}>
+                    {CATEGORIES_ICONS[category]}
                   </Text>
-                  <Text style={styles.progressLabel}>words</Text>
-                </View>
-              </Animated.View>
+                  <View style={styles.detailsText}>
+                    <Text style={styles.categoryName}>{category}</Text>
+                    <Text style={styles.metaText}>{gridSize} grid</Text>
+                  </View>
+                  <View style={styles.progressBadge}>
+                    <Text style={styles.progressCount}>
+                      {wordsFound}/{totalWords}
+                    </Text>
+                    <Text style={styles.progressLabel}>words</Text>
+                  </View>
+                </Animated.View>
 
-              <Animated.View
-                entering={FadeInDown.delay(250)}
-                style={styles.buttonsContainer}>
-                <TouchableOpacity
-                  style={styles.buttonWrapper}
-                  onPress={onNewGame}
-                  activeOpacity={0.8}>
-                  <LinearGradient
-                    colors={['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.1)']}
-                    style={styles.button}>
-                    <Text style={styles.buttonText}>New Game</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.buttonWrapper}
-                  onPress={onContinue}
-                  activeOpacity={0.8}>
-                  <LinearGradient
-                    colors={['#e77cff', '#d93cfc']}
-                    style={styles.button}>
-                    <Text style={styles.buttonText}>Continue</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
+                <Animated.View
+                  entering={FadeInDown.delay(250)}
+                  style={styles.buttonsContainer}>
+                  <DialogButton
+                    onPress={onNewGame}
+                    text={'New Game'}
+                    type="secondary"
+                  />
+                  <DialogButton
+                    onPress={onContinue}
+                    text={'Continue'}
+                    type="primary"
+                  />
+                </Animated.View>
+              </View>
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
@@ -116,37 +108,51 @@ const styles = StyleSheet.create({
   dialogContainer: {
     width: width * 0.85,
     maxWidth: 340,
-    borderRadius: 24,
+    borderRadius: 35,
     overflow: 'hidden',
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
     shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: '#5d25a296',
   },
   dialogGradient: {
-    padding: 24,
+    padding: 5,
+  },
+  dialogContent: {
+    paddingTop: 24,
+    backgroundColor: '#F6EEFD',
+    borderRadius: 30,
+    gap: 20,
+    borderWidth: 1,
+    borderColor: '#7630de',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: 'white',
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#2F1172',
     textAlign: 'center',
-    marginBottom: 20,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: {width: 1, height: 1},
-    textShadowRadius: 2,
   },
   detailsCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: '#F0E4FD',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#E7D5FC',
+    marginHorizontal: 30,
   },
   categoryEmoji: {
     fontSize: 36,
     marginRight: 14,
+    backgroundColor: '#7445E1',
+    borderRadius: 50,
+    padding: 5,
+    borderWidth: 1,
+    borderColor: '#7946ED',
   },
   detailsText: {
     flex: 1,
@@ -154,36 +160,38 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 18,
     fontWeight: '700',
-    color: 'white',
+    color: '#331378',
     textTransform: 'capitalize',
   },
   metaText: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.75)',
+    color: '#331378c0',
     marginTop: 2,
     textTransform: 'capitalize',
   },
   progressBadge: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: '#430eb539',
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 12,
   },
   progressCount: {
     fontSize: 18,
-    fontWeight: '800',
-    color: 'white',
+    fontWeight: '700',
+    color: '#430eb5bb',
   },
   progressLabel: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.75)',
+    fontWeight: '600',
+    color: '#2e087faa',
   },
   buttonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    gap: 12,
+    marginBottom: 15,
+    marginHorizontal: 15,
+    justifyContent: 'center',
+    gap: 15,
   },
   buttonWrapper: {
     flex: 1,

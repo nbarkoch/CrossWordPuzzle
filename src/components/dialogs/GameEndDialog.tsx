@@ -1,27 +1,10 @@
 import React, {useEffect, useRef} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  TouchableOpacity,
-  Modal,
-} from 'react-native';
+import {View, StyleSheet, Dimensions, Modal, Image} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-  cancelAnimation,
-  BounceIn,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated, {FadeInDown, BounceIn} from 'react-native-reanimated';
 import LottieView from 'lottie-react-native';
+import DialogButton from './DialogButton';
+import SmallStar from '../decorations/star';
 
 const {width} = Dimensions.get('window');
 
@@ -32,189 +15,6 @@ type EndGameDialogProps = {
   wordsFound?: number;
   totalWords?: number;
   resetEnabled?: boolean;
-};
-
-// Star component that encapsulates its own animation
-const Star = ({
-  angle,
-  radius,
-  delay,
-}: {
-  angle: number;
-  radius: number;
-  delay: number;
-}) => {
-  const starOpacity = useSharedValue(0);
-  const starScale = useSharedValue(0.5);
-
-  // Calculate position based on angle and distance
-  const x = Math.cos(angle) * radius;
-  const y = Math.sin(angle) * radius;
-
-  useEffect(() => {
-    starOpacity.value = withDelay(
-      800 + delay,
-      withRepeat(
-        withSequence(
-          withTiming(1, {duration: 500}),
-          withTiming(0.3, {duration: 800}),
-        ),
-        -1,
-        true,
-      ),
-    );
-
-    starScale.value = withDelay(
-      800 + delay,
-      withRepeat(
-        withSequence(
-          withTiming(1.2, {duration: 500}),
-          withTiming(0.8, {duration: 800}),
-        ),
-        -1,
-        true,
-      ),
-    );
-
-    return () => {
-      cancelAnimation(starOpacity);
-      cancelAnimation(starScale);
-    };
-  }, [delay, starOpacity, starScale]);
-
-  const starStyle = useAnimatedStyle(() => ({
-    opacity: starOpacity.value,
-    transform: [{translateX: x}, {translateY: y}, {scale: starScale.value}],
-  }));
-
-  return <Animated.Text style={[styles.star, starStyle]}>✦</Animated.Text>;
-};
-
-// Starburst animation component
-const StarburstAnimation = () => {
-  // Animated values
-  const primaryScale = useSharedValue(0.8);
-  const primaryRotation = useSharedValue(0);
-  const primaryOpacity = useSharedValue(0.7);
-
-  const secondaryScale = useSharedValue(0.7);
-  const secondaryRotation = useSharedValue(0);
-  const secondaryOpacity = useSharedValue(0.6);
-
-  const trophyScale = useSharedValue(0);
-
-  useEffect(() => {
-    // Primary starburst animation
-    primaryScale.value = withRepeat(
-      withSequence(
-        withTiming(1.1, {duration: 1500}),
-        withTiming(0.9, {duration: 1500}),
-      ),
-      -1,
-      true,
-    );
-
-    primaryRotation.value = withRepeat(
-      withTiming(360, {duration: 15000}),
-      -1,
-      false,
-    );
-
-    primaryOpacity.value = withRepeat(
-      withSequence(
-        withTiming(0.9, {duration: 1000}),
-        withTiming(0.7, {duration: 1000}),
-      ),
-      -1,
-      true,
-    );
-
-    // Secondary starburst animation (reversed direction)
-    secondaryScale.value = withRepeat(
-      withSequence(
-        withTiming(0.9, {duration: 1800}),
-        withTiming(0.7, {duration: 1800}),
-      ),
-      -1,
-      true,
-    );
-
-    secondaryRotation.value = withRepeat(
-      withTiming(-360, {duration: 12000}),
-      -1,
-      false,
-    );
-
-    secondaryOpacity.value = withRepeat(
-      withSequence(
-        withTiming(0.8, {duration: 1300}),
-        withTiming(0.6, {duration: 1300}),
-      ),
-      -1,
-      true,
-    );
-
-    // Trophy animation
-    trophyScale.value = withDelay(
-      400,
-      withSpring(1, {
-        mass: 1,
-        damping: 9,
-        stiffness: 100,
-      }),
-    );
-
-    return () => {
-      // Clean up animations
-      cancelAnimation(primaryScale);
-      cancelAnimation(primaryRotation);
-      cancelAnimation(primaryOpacity);
-      cancelAnimation(secondaryScale);
-      cancelAnimation(secondaryRotation);
-      cancelAnimation(secondaryOpacity);
-      cancelAnimation(trophyScale);
-    };
-  }, [
-    primaryOpacity,
-    primaryRotation,
-    primaryScale,
-    secondaryOpacity,
-    secondaryRotation,
-    secondaryScale,
-    trophyScale,
-  ]);
-
-  const primaryRayStyle = useAnimatedStyle(() => ({
-    transform: [
-      {scale: primaryScale.value},
-      {rotate: `${primaryRotation.value}deg`},
-    ],
-    opacity: primaryOpacity.value,
-    backgroundColor: '#e77cff',
-  }));
-
-  const trophyStyle = useAnimatedStyle(() => ({
-    transform: [{scale: trophyScale.value}],
-  }));
-
-  return (
-    <View style={styles.starburst}>
-      <Animated.View style={[styles.starburstRay, primaryRayStyle]} />
-      <View style={styles.starContainer}>
-        {Array.from({length: 5}).map((_, i) => (
-          <Star
-            key={i}
-            angle={(i * Math.PI * 2) / 5}
-            radius={35}
-            delay={i * 150}
-          />
-        ))}
-      </View>
-      <Animated.View style={trophyStyle}>
-        <Text style={styles.trophyEmoji}>🏆</Text>
-      </Animated.View>
-    </View>
-  );
 };
 
 const EndGameDialog: React.FC<EndGameDialogProps> = ({
@@ -253,54 +53,78 @@ const EndGameDialog: React.FC<EndGameDialogProps> = ({
         </View>
 
         <Animated.View entering={BounceIn} style={styles.dialogContainer}>
-          <LinearGradient
-            colors={['#994CFD', '#6F54FB']}
-            style={styles.dialogGradient}>
-            <Animated.View entering={FadeIn.delay(300)}>
-              <View style={styles.starburstContainer}>
-                <StarburstAnimation />
-              </View>
-            </Animated.View>
-
-            <Animated.Text
-              entering={FadeInDown.delay(400).springify()}
-              style={styles.congratsText}>
-              Congratulations!
-            </Animated.Text>
-            <Animated.Text
-              entering={FadeInDown.delay(500).springify()}
-              style={styles.messageText}>
-              You've found all the words!
-            </Animated.Text>
-
-            <Animated.View
-              entering={FadeInDown.delay(700).springify()}
-              style={styles.buttonsContainer}>
-              <TouchableOpacity
-                style={styles.buttonWrapper}
-                onPress={onGoHome}
-                activeOpacity={0.8}>
-                <LinearGradient
-                  colors={['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.1)']}
-                  style={styles.button}>
-                  <Text style={styles.buttonText}>Home</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              {resetEnabled && (
-                <TouchableOpacity
-                  style={styles.buttonWrapper}
-                  onPress={onPlayAgain}
-                  activeOpacity={0.8}>
+          <LottieView
+            source={require('~/assets/reward.json')}
+            style={styles.rewardAnimation}
+            loop
+            autoPlay
+            resizeMode="cover"
+            speed={0.75}
+          />
+          <View style={styles.card}>
+            <LinearGradient
+              colors={['#E3CEF5', '#B496D8']}
+              style={styles.dialogGradient}>
+              <View style={styles.dialogContent}>
+                <Animated.Text
+                  entering={FadeInDown.delay(400).springify()}
+                  style={styles.congratsText}>
+                  Congratulations!
+                </Animated.Text>
+                <Animated.Text
+                  entering={FadeInDown.delay(500).springify()}
+                  style={styles.messageText}>
+                  You've found all the words!
+                </Animated.Text>
+                <View style={styles.divider}>
                   <LinearGradient
-                    colors={['#e77cff', '#d93cfc']}
-                    style={styles.button}>
-                    <Text style={styles.buttonText}>Play Again</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-            </Animated.View>
-          </LinearGradient>
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}
+                    colors={['#FBF6FC', '#D9BCFC']}
+                    style={styles.dividerLine}
+                  />
+                  <SmallStar size={15} color="#D9BCFC" />
+                  <LinearGradient
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}
+                    colors={['#D9BCFC', '#FBF6FC']}
+                    style={styles.dividerLine}
+                  />
+                </View>
+                <Animated.View
+                  entering={FadeInDown.delay(700).springify()}
+                  style={styles.buttonsContainer}>
+                  <DialogButton
+                    text="Home"
+                    type="secondary"
+                    onPress={onGoHome}
+                  />
+                  {resetEnabled && (
+                    <DialogButton
+                      text="Play Again"
+                      type="primary"
+                      onPress={onPlayAgain}
+                    />
+                  )}
+                </Animated.View>
+              </View>
+            </LinearGradient>
+          </View>
+
+          <View style={styles.starburstContainer}>
+            <View style={styles.starburstOuter}>
+              <View style={styles.starburstInner}>
+                <LinearGradient
+                  colors={['#9C5DEA', '#622BC1']}
+                  style={styles.starburstGradient}>
+                  <Image
+                    style={styles.starImage}
+                    source={require('~/assets/imgs/star.png')}
+                  />
+                </LinearGradient>
+              </View>
+            </View>
+          </View>
         </Animated.View>
       </View>
     </Modal>
@@ -327,109 +151,102 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  rewardAnimation: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: -110,
+    height: '100%',
+    alignSelf: 'center',
+    opacity: 0.5,
+    transform: [{scale: 0.65}],
+  },
   dialogContainer: {
-    width: width * 0.85,
-    maxWidth: 340,
-    borderRadius: 24,
-    overflow: 'hidden',
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
     shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: '#5d25a296',
     zIndex: 2,
   },
+  card: {
+    maxWidth: width * 0.85,
+    borderRadius: 35,
+    overflow: 'hidden',
+  },
   dialogGradient: {
-    padding: 24,
+    padding: 5,
+  },
+  dialogContent: {
+    backgroundColor: '#FBF6FC',
+    borderRadius: 30,
+    gap: 10,
     alignItems: 'center',
+    paddingTop: 60,
+  },
+  divider: {
+    flexDirection: 'row',
+    paddingHorizontal: 50,
+    alignItems: 'center',
+    gap: 5,
+  },
+  dividerLine: {
+    height: 1,
+    flex: 1,
   },
   starburstContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    height: 100,
-    width: 100,
-    marginBottom: 16,
-  },
-  starburst: {
-    width: 100,
-    height: 100,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  starburstRay: {
     position: 'absolute',
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-  },
-  trophyEmoji: {
-    fontSize: 50,
-    zIndex: 10,
-    textAlign: 'center',
-  },
-  starContainer: {
-    position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
+    top: -30,
+    zIndex: 10,
   },
-  star: {
-    position: 'absolute',
-    color: 'white',
-    fontSize: 16,
-    textShadowColor: '#FFD700',
-    textShadowOffset: {width: 0, height: 0},
-    textShadowRadius: 4,
+  starburstOuter: {
+    elevation: 8,
+    shadowColor: '#48375a',
+    shadowOpacity: 0.5,
+    shadowOffset: {width: 0, height: 4},
+    shadowRadius: 3,
+    backgroundColor: '#F9F8FC',
+    borderColor: '#dad8e2',
+    borderWidth: 1,
+    borderRadius: 70,
+    padding: 5,
+  },
+  starburstInner: {
+    backgroundColor: '#F9F8FC',
+    borderWidth: 1,
+    borderColor: '#dad8e2',
+    overflow: 'hidden',
+    borderRadius: 70,
+  },
+  starburstGradient: {
+    padding: 2,
+  },
+  starImage: {
+    width: 70,
+    height: 70,
   },
   congratsText: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: 'white',
-    marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: {width: 1, height: 1},
-    textShadowRadius: 2,
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#4B2491',
   },
   messageText: {
     fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: '#745BBB',
     marginBottom: 14,
     textAlign: 'center',
   },
-  scoreText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: 'white',
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: {width: 1, height: 1},
-    textShadowRadius: 1,
-  },
   buttonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    gap: 12,
-    paddingTop: 24,
-  },
-  buttonWrapper: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  button: {
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '700',
+    gap: 15,
+    paddingBottom: 15,
+    paddingHorizontal: 15,
+    paddingTop: 5,
   },
 });
 

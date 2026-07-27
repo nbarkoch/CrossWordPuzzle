@@ -218,9 +218,7 @@ export default function GridContent({
     const normalizedFoundWords = sequences.map(seq => seq.word);
     const allWordsFound =
       normalizedPlacedWords.length > 0 &&
-      normalizedPlacedWords.every(word =>
-        normalizedFoundWords.includes(word),
-      );
+      normalizedPlacedWords.every(word => normalizedFoundWords.includes(word));
 
     if (allWordsFound) {
       setEndDialog(true);
