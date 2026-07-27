@@ -30,6 +30,9 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import NavigationBar from '~/components/NavigationBar';
 import LoadingAnimation from '~/components/LoadingAnimation';
 import WordWaveSelectionLine from '~/components/WordWaveSelectionLine';
+import WordWaveRevealBurst, {
+  RevealBurstItem,
+} from '~/components/WordWaveRevealBurst';
 import {RootStackParamList} from './Navigation';
 import {
   applyWordWaveTimedRowDrop,
@@ -95,6 +98,8 @@ const tileSpringConfig = {
 };
 const TILE_SPAWN_COLUMN_DELAY_MS = 16;
 const TILE_SPAWN_STACK_DELAY_MS = 42;
+// Delay between each letter's reveal burst, ordered by its position in the word.
+const TILE_REMOVE_STAGGER_MS = 20;
 const WORD_WAVE_DROP_INPUT_GRACE_MS = 120;
 const WORD_WAVE_PENDING_DROP_PENALTY = 2;
 const READY_STEPS = ['Ready', 'Set', 'Go!'];
@@ -314,7 +319,11 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
   const [foundWords, setFoundWords] = useState<WordWaveFoundWord[]>([]);
   const [hintIndex, setHintIndex] = useState(0);
   const [isResolving, setIsResolving] = useState(false);
+  // Maps the id of each tile in the word currently being revealed to its
   const [hiddenTileIds, setHiddenTileIds] = useState<Set<string>>(new Set());
+  // Reveal bursts play on their own overlay layer so the board can refill while
+  // each letter's burst finishes, staggered by its position in the word.
+  const [revealBursts, setRevealBursts] = useState<RevealBurstItem[]>([]);
   const [pendingRowDrop, setPendingRowDrop] = useState(false);
   const runStateRef = useRef<WordWaveRunState>('ready');
   const currentWaveRef = useRef(1);
@@ -495,6 +504,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     setHintIndex(0);
     setIsResolving(false);
     setHiddenTileIds(new Set());
+    setRevealBursts([]);
     setPendingRowDrop(false);
     setIsNewBest(false);
   }, []);
@@ -685,6 +695,20 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
 
     isResolvingRef.current = true;
     setIsResolving(true);
+
+    // Fire a staggered reveal burst over each letter, in word order. These play
+    // on an independent overlay layer, so the board can refill right away
+    // instead of waiting for the animation to finish.
+    const revealStamp = Date.now();
+    setRevealBursts(prev => [
+      ...prev,
+      ...move.path.map((position, index) => ({
+        key: `${board[position.row][position.col].id}:${revealStamp}`,
+        row: position.row,
+        col: position.col,
+        delay: index * TILE_REMOVE_STAGGER_MS,
+      })),
+    ]);
     setHiddenTileIds(
       new Set(move.path.map(position => board[position.row][position.col].id)),
     );
@@ -789,6 +813,10 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     nextSpawnPositions.delete(tileId);
     newTileSpawnPositionsRef.current = nextSpawnPositions;
     setSpawnVersion(version => version + 1);
+  }, []);
+
+  const handleBurstDone = useCallback((key: string) => {
+    setRevealBursts(prev => prev.filter(burst => burst.key !== key));
   }, []);
 
   const highlightMove = (path: WordWavePosition[]) => {
@@ -939,6 +967,14 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
                 cellSize={cellSize}
                 valid={isSelectionValid}
               />
+              {revealBursts.map(burst => (
+                <WordWaveRevealBurst
+                  key={burst.key}
+                  item={burst}
+                  cellSize={cellSize}
+                  onDone={handleBurstDone}
+                />
+              ))}
             </View>
             {isBoardLoading && (
               <View style={styles.boardLoadingOverlay} pointerEvents="none">
