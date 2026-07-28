@@ -5,8 +5,8 @@ import {
   Text,
   StyleSheet,
   Dimensions,
-  TouchableOpacity,
   ScrollView,
+  Pressable,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {RootStackParamList} from './Navigation';
@@ -37,10 +37,10 @@ const ITEM_WIDTH =
   (width - SIDE_INSET * 2 - ITEM_SPACING * (ITEMS_PER_ROW - 1)) / ITEMS_PER_ROW;
 
 // Visual dot-matrix dimension per puzzle tier — denser grids read as "bigger".
-const PREVIEW_DIMS: Record<GridSize, number> = {
-  small: 3,
-  medium: 4,
-  large: 5,
+const PREVIEW_DIMS: Record<GridSize, [number, number]> = {
+  small: [3, 3],
+  medium: [4, 3],
+  large: [4, 4],
 };
 
 const SectionHeader = ({title}: {title: string}) => (
@@ -56,24 +56,24 @@ const Decoration = () => (
     <LinearGradient
       start={{x: 0, y: 0}}
       end={{x: 1, y: 0}}
-      colors={['#F6EEFD', '#D9BCFC']}
+      colors={['#D9BCFC00', '#D9BCFC']}
       style={styles.dividerLine}
     />
     <SmallStar size={12} color="#D9BCFC" />
     <LinearGradient
       start={{x: 0, y: 0}}
       end={{x: 1, y: 0}}
-      colors={['#D9BCFC', '#F6EEFD']}
+      colors={['#D9BCFC', '#D9BCFC00']}
       style={styles.dividerLine}
     />
   </View>
 );
 
-const GridPreview = ({dim, color}: {dim: number; color: string}) => (
+const GridPreview = ({dim, color}: {dim: [number, number]; color: string}) => (
   <View style={styles.gridPreview}>
-    {Array.from({length: dim}).map((_row, r) => (
+    {Array.from({length: dim[0]}).map((_row, r) => (
       <View key={r} style={styles.gridPreviewRow}>
-        {Array.from({length: dim}).map((_col, c) => (
+        {Array.from({length: dim[1]}).map((_col, c) => (
           <View
             key={c}
             style={[styles.gridPreviewDot, {backgroundColor: color}]}
@@ -146,12 +146,14 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
   return (
     <LinearGradient colors={['#4B21A6', '#7E43E4']} style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.8}
+        <Pressable
           onPress={() => navigation.goBack()}
-          style={styles.backButton}>
+          style={({pressed}) => [
+            styles.backButton,
+            {transform: [{scale: pressed ? 0.95 : 1}]},
+          ]}>
           <ArrowLeft size={30} stroke="white" />
-        </TouchableOpacity>
+        </Pressable>
 
         <View style={styles.titleBlock}>
           <View style={styles.titleStarLeft}>
@@ -163,7 +165,7 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
           <Text style={styles.titleNew}>NEW GAME</Text>
         </View>
 
-        <View style={{height: 50, width: 50}} />
+        <View style={styles.blankCube} />
       </View>
 
       <View style={styles.content}>
@@ -207,7 +209,7 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
                         <>
                           <GridPreview
                             dim={PREVIEW_DIMS[size]}
-                            color={isSelected ? '#FFFFFF' : '#9873DE'}
+                            color={isSelected ? '#FFFFFF' : '#825BE2'}
                           />
                           <Text
                             style={[
@@ -307,6 +309,7 @@ const styles = StyleSheet.create({
     textShadowOffset: {width: 0, height: 3},
     textShadowRadius: 4,
   },
+  blankCube: {height: 50, width: 50},
   content: {
     flex: 1,
     paddingHorizontal: 16,
@@ -403,28 +406,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sizeFace: {
-    paddingVertical: 14,
+    paddingTop: 14,
+    paddingBottom: 12,
     paddingHorizontal: 6,
     gap: 8,
   },
   gridPreview: {
     gap: 3,
-    height: 50,
-    width: 50,
+    height: 40,
+    width: 40,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
   },
   gridPreviewRow: {
     flexDirection: 'row',
     gap: 3,
   },
   gridPreviewDot: {
-    width: 7,
-    height: 7,
+    width: 8,
+    height: 8,
     borderRadius: 1.5,
   },
   sizeName: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '800',
     textTransform: 'capitalize',
   },
