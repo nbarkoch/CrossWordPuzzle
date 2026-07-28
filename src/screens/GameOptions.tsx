@@ -26,6 +26,7 @@ import {GRADIENT_VARIANTS} from '~/components/dialogs/GradientSurface';
 import SelectableCard from '~/components/SelectableCard';
 import SmallStar from '~/components/decorations/star';
 import {ArrowLeft} from '~/components/decorations/arrows';
+import LineDecoration from '~/components/decorations/lineDecoration';
 
 const {width} = Dimensions.get('window');
 const ITEM_SPACING = 12;
@@ -48,24 +49,6 @@ const SectionHeader = ({title}: {title: string}) => (
     <SmallStar size={12} color="#C6A4F2" />
     <Text style={styles.sectionTitle}>{title}</Text>
     <SmallStar size={12} color="#C6A4F2" />
-  </View>
-);
-
-const Decoration = () => (
-  <View style={styles.divider}>
-    <LinearGradient
-      start={{x: 0, y: 0}}
-      end={{x: 1, y: 0}}
-      colors={['#D9BCFC00', '#D9BCFC']}
-      style={styles.dividerLine}
-    />
-    <SmallStar size={12} color="#D9BCFC" />
-    <LinearGradient
-      start={{x: 0, y: 0}}
-      end={{x: 1, y: 0}}
-      colors={['#D9BCFC', '#D9BCFC00']}
-      style={styles.dividerLine}
-    />
   </View>
 );
 
@@ -235,7 +218,7 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
               </View>
 
               <View>
-                <Decoration />
+                <LineDecoration />
                 <DialogButton
                   type="primary"
                   text="Play Game"
@@ -332,17 +315,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F6EEFD',
     overflow: 'hidden',
     paddingTop: 20,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  dividerLine: {
-    height: 1,
-    flex: 1,
   },
   sectionHeader: {
     flexDirection: 'row',

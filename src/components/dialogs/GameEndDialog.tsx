@@ -4,7 +4,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Animated, {FadeInDown, BounceIn} from 'react-native-reanimated';
 import LottieView from 'lottie-react-native';
 import DialogButton from './DialogButton';
-import SmallStar from '../decorations/star';
+import LineDecoration from '../decorations/lineDecoration';
 
 const {width} = Dimensions.get('window');
 
@@ -76,21 +76,7 @@ const EndGameDialog: React.FC<EndGameDialogProps> = ({
                   style={styles.messageText}>
                   You've found all the words!
                 </Animated.Text>
-                <View style={styles.divider}>
-                  <LinearGradient
-                    start={{x: 0, y: 0}}
-                    end={{x: 1, y: 0}}
-                    colors={['#FBF6FC', '#D9BCFC']}
-                    style={styles.dividerLine}
-                  />
-                  <SmallStar size={15} color="#D9BCFC" />
-                  <LinearGradient
-                    start={{x: 0, y: 0}}
-                    end={{x: 1, y: 0}}
-                    colors={['#D9BCFC', '#FBF6FC']}
-                    style={styles.dividerLine}
-                  />
-                </View>
+                <LineDecoration />
                 <Animated.View
                   entering={FadeInDown.delay(700).springify()}
                   style={styles.buttonsContainer}>
@@ -184,16 +170,6 @@ const styles = StyleSheet.create({
     gap: 10,
     alignItems: 'center',
     paddingTop: 60,
-  },
-  divider: {
-    flexDirection: 'row',
-    paddingHorizontal: 50,
-    alignItems: 'center',
-    gap: 5,
-  },
-  dividerLine: {
-    height: 1,
-    flex: 1,
   },
   starburstContainer: {
     alignItems: 'center',
