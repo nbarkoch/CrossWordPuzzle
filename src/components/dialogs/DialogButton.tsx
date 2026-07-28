@@ -1,5 +1,5 @@
 import React from 'react';
-import {Pressable, StyleSheet, Text} from 'react-native';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 import GradientSurface, {
   GradientVariant,
   GRADIENT_VARIANTS,
@@ -21,21 +21,24 @@ function DialogButton({
   fullWidth = false,
 }: DialogButtonProps) {
   return (
-    <Pressable
-      disabled={disabled}
-      style={({pressed}) => [
-        styles.pressable,
-        fullWidth && styles.fullWidth,
-        disabled && styles.disabled,
-        {transform: [{scale: pressed && !disabled ? 0.95 : 1}]},
-      ]}
-      onPress={onPress}>
-      <GradientSurface variant={type} contentStyle={styles.face}>
-        <Text style={[styles.text, {color: GRADIENT_VARIANTS[type].textColor}]}>
-          {text}
-        </Text>
-      </GradientSurface>
-    </Pressable>
+    <View style={styles.shadow}>
+      <Pressable
+        disabled={disabled}
+        style={({pressed}) => [
+          styles.pressable,
+          fullWidth && styles.fullWidth,
+          disabled && styles.disabled,
+          {transform: [{scale: pressed && !disabled ? 0.95 : 1}]},
+        ]}
+        onPress={onPress}>
+        <GradientSurface variant={type} contentStyle={styles.face}>
+          <Text
+            style={[styles.text, {color: GRADIENT_VARIANTS[type].textColor}]}>
+            {text}
+          </Text>
+        </GradientSurface>
+      </Pressable>
+    </View>
   );
 }
 
@@ -43,6 +46,13 @@ const styles = StyleSheet.create({
   pressable: {
     borderRadius: 22,
     overflow: 'hidden',
+  },
+  shadow: {
+    shadowColor: '#7445E1',
+    shadowOpacity: 0.45,
+    shadowRadius: 3,
+    elevation: 2,
+    shadowOffset: {width: 0, height: 3},
   },
   fullWidth: {
     width: '100%',

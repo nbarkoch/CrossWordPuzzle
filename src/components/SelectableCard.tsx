@@ -46,7 +46,10 @@ const SelectableCard = ({
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={onPress}
-        style={[styles.shadow, isSelected ? styles.shadowSelected : styles.shadowIdle]}>
+        style={[
+          styles.shadow,
+          isSelected ? styles.shadowSelected : styles.shadowIdle,
+        ]}>
         <GradientSurface
           variant={variant}
           radius={radius}

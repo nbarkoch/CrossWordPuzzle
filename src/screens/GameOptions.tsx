@@ -1,5 +1,5 @@
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
   GRID_TYPE_SIZES,
   GridSize,
 } from '~/utils/types';
+import {loadLastGameOptions, saveLastGameOptions} from '~/utils/gameStorage';
 import {Banner} from '~/components/AdBanner';
 import {CATEGORIES_ICONS} from '~/utils/consts';
 import {RouteProp, useRoute} from '@react-navigation/native';
@@ -107,14 +108,30 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
   const {mode} =
     useRoute<RouteProp<RootStackParamList, 'GameOptions'>>().params;
 
-  const [selectedCategory, setSelectedCategory] =
-    useState<CategorySelection | null>(null);
-  const [selectedSize, setSelectedSize] = useState<GridSize | null>(null);
+  // Default both scopes to the first item so "Play Game" is never stuck
+  // disabled; the remembered last choice (if any) overrides these on mount.
+  const [selectedCategory, setSelectedCategory] = useState<CategorySelection>(
+    CATEGORIES[0],
+  );
+  const [selectedSize, setSelectedSize] = useState<GridSize>(
+    GRID_TYPE_SIZES[0],
+  );
 
-  React.useEffect(() => {
-    if (selectedCategory && selectedSize) {
-      prepareGrid({category: selectedCategory, gridSize: selectedSize, mode});
-    }
+  useEffect(() => {
+    let active = true;
+    loadLastGameOptions().then(last => {
+      if (active && last) {
+        setSelectedCategory(last.category);
+        setSelectedSize(last.gridSize);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    prepareGrid({category: selectedCategory, gridSize: selectedSize, mode});
   }, [mode, selectedCategory, selectedSize]);
 
   function onStart(params: {
@@ -122,9 +139,13 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
     blockSize: GridSize;
   }): void {
     navigation.navigate('Game', {...params, mode});
+    // Persist the last choice as the final, non-blocking step — after
+    // navigation so it never delays entering the game.
+    saveLastGameOptions({
+      category: params.category,
+      gridSize: params.blockSize,
+    });
   }
-
-  const canPlay = Boolean(selectedCategory && selectedSize);
 
   return (
     <LinearGradient colors={['#4B21A6', '#7E43E4']} style={styles.container}>
@@ -223,10 +244,7 @@ const GameOptions: React.FC<GameOptionsProps> = ({navigation}) => {
                   type="primary"
                   text="Play Game"
                   fullWidth
-                  disabled={!canPlay}
                   onPress={() =>
-                    selectedCategory &&
-                    selectedSize &&
                     onStart({
                       category: selectedCategory,
                       blockSize: selectedSize,

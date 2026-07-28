@@ -24,6 +24,44 @@ const STORAGE_KEYS: Record<SavedGameMode, string> = {
 
 const WORD_WAVE_BEST_SCORE_KEY = '@word_wave/best_score';
 
+const LAST_GAME_OPTIONS_KEY = '@game_options/last_choice';
+
+export type LastGameOptions = {
+  category: CategorySelection;
+  gridSize: GridSize;
+};
+
+export const loadLastGameOptions =
+  async (): Promise<LastGameOptions | null> => {
+    try {
+      const raw = await AsyncStorage.getItem(LAST_GAME_OPTIONS_KEY);
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw) as Partial<LastGameOptions>;
+      if (!parsed?.category || !parsed?.gridSize) {
+        return null;
+      }
+      return {category: parsed.category, gridSize: parsed.gridSize};
+    } catch (error) {
+      console.error('Failed to load last game options:', error);
+      return null;
+    }
+  };
+
+export const saveLastGameOptions = async (
+  options: LastGameOptions,
+): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(
+      LAST_GAME_OPTIONS_KEY,
+      JSON.stringify(options),
+    );
+  } catch (error) {
+    console.error('Failed to save last game options:', error);
+  }
+};
+
 export const loadWordWaveBestScore = async (): Promise<number> => {
   try {
     const raw = await AsyncStorage.getItem(WORD_WAVE_BEST_SCORE_KEY);
