@@ -55,8 +55,6 @@ import {
 } from '~/utils/gameStorage';
 import {Banner} from '~/components/AdBanner';
 
-const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
-
 const cheat = false;
 
 type WordWaveProps = {
@@ -829,59 +827,51 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
         colors={['#4B21A6', '#8043E9', '#9f4ef1', '#4B21A6']}
         style={styles.content}>
         <View style={styles.headerWrapper}>
-          <AnimatedLinearGradient
-            key={hasWord ? 'word-header' : 'info-header'}
-            style={[
-              styles.headerPill,
-              hasWord ? styles.wordPill : styles.infoPill,
-            ]}
+          <LinearGradient
+            style={[styles.headerPill, styles.infoPill]}
             start={{x: 0, y: 0}}
             end={{x: 1, y: 0}}
-            colors={
-              hasWord
-                ? ['#8925b453', '#953be396', '#8925b453']
-                : ['#8c3be396', '#4925b400', '#4925b400']
-            }
-            entering={FadeIn.duration(120)}
-            exiting={FadeOut.duration(90)}
-            layout={LinearTransition.springify()
-              .mass(0.3)
-              .damping(12)
-              .stiffness(100)}>
-            {hasWord ? (
-              <View style={styles.wordContainer}>
-                <Text style={styles.wordText}>{selectedWord}</Text>
+            colors={['#8c3be396', '#4925b400', '#4925b400']}>
+            <View style={styles.badgesRow}>
+              <View style={styles.badge}>
+                <Text
+                  style={[
+                    styles.badgeValue,
+                    pendingRowDrop && styles.badgeValueAlert,
+                  ]}>
+                  {pendingRowDrop ? 'DROP' : dropSecondsLeft}
+                </Text>
+                <Text style={styles.badgeLabel}>Drop In</Text>
               </View>
-            ) : (
-              <View style={styles.badgesRow}>
-                <View style={styles.badge}>
-                  <Text
-                    style={[
-                      styles.badgeValue,
-                      pendingRowDrop && styles.badgeValueAlert,
-                    ]}>
-                    {pendingRowDrop ? 'DROP' : dropSecondsLeft}
-                  </Text>
-                  <Text style={styles.badgeLabel}>Drop In</Text>
-                </View>
-                <View style={styles.badgeSeparator} />
-                <View style={styles.badge}>
-                  <Text style={styles.badgeValue}>{arcadeScore}</Text>
-                  <Text style={styles.badgeLabel}>Score</Text>
-                </View>
-                <View style={styles.badgeSeparator} />
-                <View style={styles.badge}>
-                  <Text style={styles.badgeValue}>
-                    {currentWave}/{WORD_WAVE_TOTAL_WAVES}
-                  </Text>
-                  <Text style={styles.badgeLabel}>Wave</Text>
-                </View>
+              <View style={styles.badgeSeparator} />
+              <View style={styles.badge}>
+                <Text style={styles.badgeValue}>{arcadeScore}</Text>
+                <Text style={styles.badgeLabel}>Score</Text>
               </View>
-            )}
-          </AnimatedLinearGradient>
+              <View style={styles.badgeSeparator} />
+              <View style={styles.badge}>
+                <Text style={styles.badgeValue}>
+                  {currentWave}/{WORD_WAVE_TOTAL_WAVES}
+                </Text>
+                <Text style={styles.badgeLabel}>Wave</Text>
+              </View>
+            </View>
+          </LinearGradient>
         </View>
 
         <View style={styles.boardArea}>
+          <View style={styles.selectionPreviewSlot} pointerEvents="none">
+            {hasWord && (
+              <Animated.View
+                entering={FadeIn.duration(120)}
+                exiting={FadeOut.duration(90)}
+                style={styles.selectedWordPill}>
+                <Text allowFontScaling={false} style={styles.selectedWordText}>
+                  {selectedWord}
+                </Text>
+              </Animated.View>
+            )}
+          </View>
           <View
             style={[
               styles.boardShadowContainer,
@@ -1135,7 +1125,6 @@ const styles = StyleSheet.create({
   infoPill: {
     backgroundColor: '#ba52ff31',
   },
-  wordPill: {},
   badgesRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1165,23 +1154,31 @@ const styles = StyleSheet.create({
     height: 32,
     backgroundColor: 'rgba(255,255,255,0.25)',
   },
-  wordContainer: {
-    flex: 1,
-    alignItems: 'center',
+  selectionPreviewSlot: {
+    height: 60,
     justifyContent: 'center',
-    paddingVertical: 8,
+    alignItems: 'center',
+    width: '100%',
+    marginTop: -8,
   },
-  wordText: {
+  selectedWordPill: {
+    paddingHorizontal: 20,
+    paddingVertical: 4,
+    borderRadius: 14,
+    backgroundColor: '#00000031',
+    alignItems: 'center',
+  },
+  selectedWordText: {
     color: 'rgba(255,255,255,0.95)',
-    fontSize: 26,
+    fontSize: 20,
     fontWeight: '900',
     letterSpacing: 2,
+    textAlign: 'center',
   },
   boardArea: {
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
   },
   boardShadowContainer: {
     position: 'relative',
