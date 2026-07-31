@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {View, Text, StyleSheet, Image} from 'react-native';
+import {View, Text, StyleSheet, Image, ScrollView} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useFocusEffect} from '@react-navigation/native';
@@ -117,7 +117,11 @@ const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
     <LinearGradient
       style={styles.container}
       colors={['#4A20A4', '#8437DE', '#662FCA', '#471EA0']}>
-      <Animated.View entering={FadeInDown.delay(200)}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}>
+        <Animated.View entering={FadeInDown.delay(200)}>
         <View style={styles.titleContainer}>
           <Image
             style={styles.titleImage}
@@ -168,7 +172,8 @@ const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
             />
           </View>
         </View>
-      </Animated.View>
+        </Animated.View>
+      </ScrollView>
 
       {classicSave && (
         <ContinueGameDialog
@@ -189,6 +194,12 @@ const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     paddingBottom: 50 + Banner.height,
   },

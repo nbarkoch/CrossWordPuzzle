@@ -1,7 +1,7 @@
 import React, {useEffect, useRef} from 'react';
 import {View, StyleSheet, Dimensions, Modal, Image} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Animated, {FadeInDown, BounceIn} from 'react-native-reanimated';
+import Animated, {FadeInDown, ZoomIn} from 'react-native-reanimated';
 import LottieView from 'lottie-react-native';
 import DialogButton from './DialogButton';
 import LineDecoration from '../decorations/lineDecoration';
@@ -52,7 +52,9 @@ const EndGameDialog: React.FC<EndGameDialogProps> = ({
           />
         </View>
 
-        <Animated.View entering={BounceIn} style={styles.dialogContainer}>
+        <Animated.View
+          entering={ZoomIn.springify().damping(14).stiffness(160).mass(0.7)}
+          style={styles.dialogContainer}>
           <LottieView
             source={require('~/assets/reward.json')}
             style={styles.rewardAnimation}
