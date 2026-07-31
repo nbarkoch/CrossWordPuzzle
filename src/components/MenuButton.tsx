@@ -53,7 +53,12 @@ function MenuButton({
                 </View>
               </View>
               <View style={styles.textColumn}>
-                <Text style={styles.title}>{title}</Text>
+                <Text
+                  adjustsFontSizeToFit
+                  numberOfLines={1}
+                  style={styles.title}>
+                  {title}
+                </Text>
                 <Text numberOfLines={2} style={styles.subtitle}>
                   {subtitle}
                 </Text>

@@ -1,4 +1,10 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   FlatList,
   GestureResponderEvent,
@@ -54,7 +60,6 @@ import {
   saveWordWaveBestScore,
 } from '~/utils/gameStorage';
 import {Banner} from '~/components/AdBanner';
-import {runOnJS} from 'react-native-worklets';
 
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 
@@ -164,16 +169,9 @@ const Tile: React.FC<TileProps> = ({
   onSpawnConsumed,
 }) => {
   const startPosition = spawnState?.startPosition;
-  const consumedSpawnIdRef = useRef<string | null>(null);
-  const spawnFrameRef = useRef<number | null>(null);
-  const translateX = useSharedValue((startPosition?.col ?? col) * cellSize);
-  const translateY = useSharedValue((startPosition?.row ?? row) * cellSize);
   const letterTranslateX = useSharedValue(0);
   const letterOpacity = useSharedValue(1);
   const selectionScale = useSharedValue(1);
-  const tileAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{translateX: translateX.value}, {translateY: translateY.value}],
-  }));
   const letterAnimatedStyle = useAnimatedStyle(() => ({
     opacity: letterOpacity.value,
     transform: [{translateX: letterTranslateX.value}],
@@ -181,6 +179,36 @@ const Tile: React.FC<TileProps> = ({
   const selectionAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{scale: selectionScale.value}],
   }));
+
+  // A spawned tile falls in via a custom *entering* animation, and tiles that
+  // shift cells (row drop / gravity) move via *layout* (LinearTransition).
+  //
+  // Why this and not a hand-driven shared value: Reanimated applies the
+  // entering `initialValues` as the view's very first painted frame, so the
+  // tile is never drawn at its resting cell before the fall begins — that's the
+  // "see the cell for a moment before it mounts" flash, gone. And because both
+  // run through the layout-animation pipeline (not the out-of-tree props path),
+  // they don't hit the Fabric commit-pause race that used to strand tiles on a
+  // new wave. Position itself is committed via left/top in the render below.
+  const entering = useMemo(() => {
+    if (!spawnState) {
+      return undefined;
+    }
+    const fromY = (spawnState.startPosition.row - row) * cellSize;
+    const delayMs = spawnState.delayMs;
+    return () => {
+      'worklet';
+      return {
+        initialValues: {opacity: 0, transform: [{translateY: fromY}]},
+        animations: {
+          opacity: withDelay(delayMs, withTiming(1, {duration: 150})),
+          transform: [
+            {translateY: withDelay(delayMs, withSpring(0, tileSpringConfig))},
+          ],
+        },
+      };
+    };
+  }, [spawnState, row, cellSize]);
 
   useEffect(() => {
     selectionScale.value = withSpring(selected ? 1.05 : 1, {
@@ -190,65 +218,18 @@ const Tile: React.FC<TileProps> = ({
     });
   }, [selected, selectionScale]);
 
+  // The entering animation owns the fall now; this just lets the parent forget
+  // the tile's spawn bookkeeping once it has settled.
   useEffect(() => {
-    const targetX = col * cellSize;
-    const targetY = row * cellSize;
-
-    if (spawnFrameRef.current !== null) {
-      cancelAnimationFrame(spawnFrameRef.current);
-      spawnFrameRef.current = null;
-    }
-
-    if (!startPosition) {
-      translateX.value = withSpring(targetX, tileSpringConfig);
-      translateY.value = withSpring(targetY, tileSpringConfig);
+    if (!spawnState) {
       return;
     }
-
-    if (consumedSpawnIdRef.current === tile.id) {
-      translateX.value = withSpring(targetX, tileSpringConfig);
-      translateY.value = withSpring(targetY, tileSpringConfig);
-      return;
-    }
-
-    consumedSpawnIdRef.current = tile.id;
-    translateX.value = startPosition.col * cellSize;
-    translateY.value = startPosition.row * cellSize;
-
-    spawnFrameRef.current = requestAnimationFrame(() => {
-      translateX.value = withDelay(
-        spawnState.delayMs,
-        withSpring(targetX, tileSpringConfig),
-      );
-      translateY.value = withDelay(
-        spawnState.delayMs,
-        withSpring(targetY, tileSpringConfig, finished => {
-          if (finished) {
-            runOnJS(onSpawnConsumed)(tile.id);
-          }
-        }),
-      );
-    });
-
-    return () => {
-      if (spawnFrameRef.current !== null) {
-        cancelAnimationFrame(spawnFrameRef.current);
-        spawnFrameRef.current = null;
-      }
-    };
-  }, [
-    cellSize,
-    col,
-    onSpawnConsumed,
-    spawnState?.delayMs,
-    startPosition,
-    startPosition?.col,
-    startPosition?.row,
-    row,
-    tile.id,
-    translateX,
-    translateY,
-  ]);
+    const timer = setTimeout(
+      () => onSpawnConsumed(tile.id),
+      spawnState.delayMs + 450,
+    );
+    return () => clearTimeout(timer);
+  }, [spawnState, onSpawnConsumed, tile.id]);
 
   useEffect(() => {
     // Only tiles that spawn during play (they carry a spawn state and fall in
@@ -273,13 +254,19 @@ const Tile: React.FC<TileProps> = ({
 
   return (
     <Animated.View
+      entering={entering}
+      layout={LinearTransition.springify()
+        .mass(0.35)
+        .damping(14)
+        .stiffness(120)}
       style={[
         styles.tileWrap,
         {
+          left: col * cellSize,
+          top: row * cellSize,
           width: cellSize,
           height: cellSize,
         },
-        tileAnimatedStyle,
       ]}
       pointerEvents="none">
       <Animated.View
