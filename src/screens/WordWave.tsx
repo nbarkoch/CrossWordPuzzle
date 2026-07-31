@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   FlatList,
   GestureResponderEvent,
@@ -1039,7 +1033,9 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
         animationType="fade"
         onRequestClose={resetRun}>
         <View style={styles.summaryBackdrop}>
-          <View style={styles.summaryDialog}>
+          <Animated.View
+            entering={ZoomIn.springify().damping(14).stiffness(160).mass(0.7)}
+            style={styles.summaryDialog}>
             <Text style={styles.summaryTitle}>Run Complete</Text>
             {isNewBest && (
               <Text style={styles.summaryNewBest}>🎉 New Best Score!</Text>
@@ -1104,7 +1100,7 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
                 <Text style={styles.summaryButtonText}>Home</Text>
               </Pressable>
             </View>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     </View>
