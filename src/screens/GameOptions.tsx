@@ -293,14 +293,12 @@ const styles = StyleSheet.create({
   },
   titleStarLeft: {
     position: 'absolute',
-    left: -34,
-    top: 2,
+    left: -24,
     opacity: 0.9,
   },
   titleStarRight: {
     position: 'absolute',
-    right: -30,
-    top: 12,
+    right: -20,
     opacity: 0.8,
   },
   titleNew: {
@@ -371,8 +369,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   categoryEmoji: {
-    fontSize: 40,
-    marginBottom: 8,
+    fontSize: 38,
+    marginBottom: 3,
   },
   categoryText: {
     fontSize: 14,

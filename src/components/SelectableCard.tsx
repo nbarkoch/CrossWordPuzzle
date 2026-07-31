@@ -1,5 +1,5 @@
 import React from 'react';
-import {StyleProp, StyleSheet, TouchableOpacity, ViewStyle} from 'react-native';
+import {Pressable, StyleProp, StyleSheet, ViewStyle} from 'react-native';
 import Animated, {
   FadeInDown,
   useAnimatedStyle,
@@ -43,8 +43,7 @@ const SelectableCard = ({
     <Animated.View
       entering={index !== undefined ? FadeInDown.delay(index * 60) : undefined}
       style={[containerStyle, animatedStyle]}>
-      <TouchableOpacity
-        activeOpacity={0.85}
+      <Pressable
         onPress={onPress}
         style={[
           styles.shadow,
@@ -56,7 +55,7 @@ const SelectableCard = ({
           contentStyle={contentStyle}>
           {children(variant)}
         </GradientSurface>
-      </TouchableOpacity>
+      </Pressable>
     </Animated.View>
   );
 };
