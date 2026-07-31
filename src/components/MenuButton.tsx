@@ -43,13 +43,23 @@ function MenuButton({
             <LinearGradient
               style={styles.cardGradient}
               colors={['#FDFBFE', '#EEDCFD']}>
-              <View style={styles.iconRing}>
-                <View style={styles.iconCircle}>
-                  <Image
-                    resizeMode="cover"
-                    style={styles.icon}
-                    source={image}
-                  />
+              <View style={styles.iconRingS}>
+                <View style={styles.iconRingW}>
+                  <LinearGradient
+                    style={styles.iconRing}
+                    colors={['#FBF9FE', '#C9A4F8']}>
+                    <View style={styles.iconCircleW}>
+                      <LinearGradient
+                        colors={['#7E42E3', '#5F2EC3']}
+                        style={styles.iconCircle}>
+                        <Image
+                          resizeMode="cover"
+                          style={styles.icon}
+                          source={image}
+                        />
+                      </LinearGradient>
+                    </View>
+                  </LinearGradient>
                 </View>
               </View>
               <View style={styles.textColumn}>
@@ -114,18 +124,33 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 10,
   },
-  iconRing: {
-    borderWidth: 1,
-    borderColor: '#0000003c',
+  iconRingS: {
     borderRadius: 50,
-    padding: 3,
     backgroundColor: '#FDFBFE',
-    shadowColor: '#723BD7',
-    shadowOpacity: 0.3,
-    shadowOffset: {width: 0, height: 3},
+    shadowColor: '#5228a1',
+    shadowOpacity: 0.75,
+    shadowOffset: {width: 0, height: 1},
     shadowRadius: 1,
     elevation: 2,
     alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: '#9170cd8e',
+  },
+  iconRingW: {
+    borderRadius: 50,
+    backgroundColor: '#FDFBFE',
+    overflow: 'hidden',
+  },
+  iconRing: {
+    borderRadius: 50,
+    padding: 2,
+    backgroundColor: '#FDFBFE',
+  },
+  iconCircleW: {
+    borderRadius: 50,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#ffffffb2',
   },
   iconCircle: {
     backgroundColor: '#723BD7',

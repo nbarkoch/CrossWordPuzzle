@@ -60,9 +60,12 @@ const ContinueGameDialog: React.FC<ContinueGameDialogProps> = ({
                 <Animated.View
                   entering={FadeInDown.delay(150)}
                   style={styles.detailsCard}>
-                  <Text style={styles.categoryEmoji}>
-                    {CATEGORIES_ICONS[category]}
-                  </Text>
+                  <View style={styles.categoryCard}>
+                    <Text allowFontScaling={false} style={styles.categoryEmoji}>
+                      {CATEGORIES_ICONS[category]}
+                    </Text>
+                  </View>
+
                   <View style={styles.detailsText}>
                     <Text style={styles.categoryName}>{category}</Text>
                     <Text style={styles.metaText}>{gridSize} grid</Text>
@@ -145,14 +148,19 @@ const styles = StyleSheet.create({
     borderColor: '#E7D5FC',
     marginHorizontal: 30,
   },
-  categoryEmoji: {
-    fontSize: 36,
-    marginRight: 14,
+  categoryCard: {
+    width: 55,
+    height: 55,
     backgroundColor: '#7445E1',
-    borderRadius: 50,
-    padding: 5,
     borderWidth: 1,
     borderColor: '#7946ED',
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginEnd: 10,
+  },
+  categoryEmoji: {
+    fontSize: 36,
   },
   detailsText: {
     flex: 1,

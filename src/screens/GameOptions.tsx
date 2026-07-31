@@ -87,7 +87,9 @@ const CategoryItem = ({
     contentStyle={styles.categoryFace}>
     {variant => (
       <>
-        <Text style={styles.categoryEmoji}>{CATEGORIES_ICONS[category]}</Text>
+        <Text allowFontScaling={false} style={styles.categoryEmoji}>
+          {CATEGORIES_ICONS[category]}
+        </Text>
         <Text
           style={[
             styles.categoryText,
