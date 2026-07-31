@@ -158,8 +158,9 @@ const styles = StyleSheet.create({
     padding: 7,
   },
   icon: {
-    width: 70,
-    height: 70,
+    width: 80,
+    height: 80,
+    margin: -8,
   },
   textColumn: {
     flex: 1,

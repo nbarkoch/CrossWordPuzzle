@@ -122,56 +122,58 @@ const MainMenu: React.FC<MainMenuProps> = ({navigation}) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInDown.delay(200)}>
-        <View style={styles.titleContainer}>
-          <Image
-            style={styles.titleImage}
-            resizeMode="contain"
-            source={require('~/assets/imgs/title.png')}
-          />
-          <View style={styles.subtitleBadge}>
-            <SmallStar size={15} />
-            <Text style={styles.subtitle}>Word Search Puzzle</Text>
-            <SmallStar size={15} />
+          <View style={styles.titleContainer}>
+            <Image
+              style={styles.titleImage}
+              resizeMode="contain"
+              source={require('~/assets/imgs/title.png')}
+            />
+            <View style={styles.subtitleBadge}>
+              <SmallStar size={15} />
+              <Text style={styles.subtitle}>Word Search Puzzle</Text>
+              <SmallStar size={15} />
+            </View>
           </View>
-        </View>
 
-        <View style={styles.modesWrapper}>
-          <View style={styles.modesContainer}>
-            <MenuButton
-              onPress={() => handleModeSelection('classic')}
-              title={'Classic Mode'}
-              subtitle={
-                classicSave
-                  ? `Continue your ${classicSave.category} puzzle`
-                  : 'Find all words at your own pace'
-              }
-              image={require('~/assets/imgs/search.png')}
-              tag={classicSave ? 'RESUME' : undefined}
-            />
+          <View style={styles.modesWrapper}>
+            <View style={styles.modesContainer}>
+              <MenuButton
+                onPress={() => handleModeSelection('classic')}
+                title={'Classic Mode'}
+                subtitle={
+                  classicSave
+                    ? `Continue your ${classicSave.category} puzzle`
+                    : 'Find all words at your own pace'
+                }
+                image={require('~/assets/imgs/m_search.png')}
+                tag={classicSave ? 'RESUME' : undefined}
+              />
 
-            <MenuButton
-              onPress={() => handleModeSelection('daily')}
-              disabled={dailyDone}
-              title={'Daily Challenge'}
-              subtitle={
-                dailyDone
-                  ? 'Completed — new puzzle tomorrow'
-                  : dailyResumable
-                    ? "Resume today's challenge"
-                    : 'New puzzles every day'
-              }
-              image={require('~/assets/imgs/daily.png')}
-              tag={dailyDone ? '✓ DONE' : dailyResumable ? 'RESUME' : undefined}
-            />
+              <MenuButton
+                onPress={() => handleModeSelection('daily')}
+                disabled={dailyDone}
+                title={'Daily Challenge'}
+                subtitle={
+                  dailyDone
+                    ? 'Completed — new puzzle tomorrow'
+                    : dailyResumable
+                      ? "Resume today's challenge"
+                      : 'New puzzles every day'
+                }
+                image={require('~/assets/imgs/m_daily.png')}
+                tag={
+                  dailyDone ? '✓ DONE' : dailyResumable ? 'RESUME' : undefined
+                }
+              />
 
-            <MenuButton
-              onPress={() => handleModeSelection('challenge')}
-              title={'Wave Puzzle'}
-              subtitle={'Find falling word sets'}
-              image={require('~/assets/imgs/wave.png')}
-            />
+              <MenuButton
+                onPress={() => handleModeSelection('challenge')}
+                title={'Wave Puzzle'}
+                subtitle={'Find falling word sets'}
+                image={require('~/assets/imgs/m_wave.png')}
+              />
+            </View>
           </View>
-        </View>
         </Animated.View>
       </ScrollView>
 
