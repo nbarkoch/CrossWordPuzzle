@@ -54,6 +54,7 @@ import {
   saveWordWaveBestScore,
 } from '~/utils/gameStorage';
 import {Banner} from '~/components/AdBanner';
+import {useContentWidth} from '~/utils/safeLayout';
 
 const cheat = false;
 
@@ -320,7 +321,8 @@ const WordWave: React.FC<WordWaveProps> = ({navigation}) => {
     new Map(),
   );
   const [, setSpawnVersion] = useState(0);
-  const {width, height} = useWindowDimensions();
+  const {height} = useWindowDimensions();
+  const width = useContentWidth();
   const boardSize = Math.min(width - 20, height * 0.52, 440);
   const cellSize = boardSize / WORD_WAVE_SIZE;
   const readyScale = useSharedValue(0.82);

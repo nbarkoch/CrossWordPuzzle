@@ -1,22 +1,28 @@
 import React from 'react';
 import {StyleSheet, View} from 'react-native';
 import {BannerAd, BannerAdSize, TestIds} from 'react-native-google-mobile-ads';
-import {Dimensions} from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
-
-const {width} = Dimensions.get('screen');
+import {useContentInsets, useContentWidth} from '~/utils/safeLayout';
 
 export const Banner = {width: 320, height: 50};
 interface AdBannerProps {}
 
 const AdBanner = ({}: AdBannerProps) => {
-  const {bottom} = useSafeAreaInsets();
+  const {bottom, left} = useContentInsets();
+  const contentWidth = useContentWidth();
   const adUnitId = __DEV__
     ? TestIds.BANNER
     : 'ca-app-pub-3655197897637289/5393134387';
 
   return (
-    <View style={[styles.banner, {height: Math.max(bottom, Banner.height)}]}>
+    <View
+      style={[
+        styles.banner,
+        {
+          height: Math.max(bottom, Banner.height),
+          // Center within the content column, not the full screen.
+          left: left + (contentWidth - Banner.width) / 2,
+        },
+      ]}>
       <BannerAd
         unitId={adUnitId}
         size={BannerAdSize.BANNER}
@@ -37,7 +43,6 @@ const styles = StyleSheet.create({
     minHeight: 50,
     position: 'absolute',
     bottom: 0,
-    left: (width - Banner.width) / 2,
   },
 });
 

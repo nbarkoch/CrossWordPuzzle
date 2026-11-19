@@ -1,8 +1,15 @@
 import {Dimensions} from 'react-native';
 import {Direction, Position, WordSequence} from './types';
 import {BLOCK_SIZES, GRID_BOTTOM, GRID_HORIZONTAL} from './consts';
+import {INITIAL_CONTENT_INSETS} from './safeLayout';
 
-const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('screen');
+// Side safe-area insets (e.g. a camera pill on a side edge) are padded out by
+// Navigation, so the grid must fit in what's left between them.
+const SCREEN_WIDTH =
+  Dimensions.get('screen').width -
+  INITIAL_CONTENT_INSETS.left -
+  INITIAL_CONTENT_INSETS.right;
+const SCREEN_HEIGHT = Dimensions.get('screen').height;
 
 export {SCREEN_WIDTH, SCREEN_HEIGHT};
 

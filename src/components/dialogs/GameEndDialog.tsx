@@ -159,7 +159,8 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   card: {
-    maxWidth: width * 0.85,
+    minWidth: 200,
+    maxWidth: width - 50,
     borderRadius: 35,
     overflow: 'hidden',
   },

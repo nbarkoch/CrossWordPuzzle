@@ -1,5 +1,5 @@
-import React, {useEffect} from 'react';
-import {View, StyleSheet, TextInput} from 'react-native';
+import React, {useCallback, useEffect, useState} from 'react';
+import {LayoutChangeEvent, View, StyleSheet, TextInput} from 'react-native';
 import {
   Canvas,
   LinearGradient as SkiaLinearGradient,
@@ -29,9 +29,14 @@ const STRIPE_GRADIENT_COLORS: [string[], string[]] = [
   DARK_STRIPE_GRADIENT_COLORS,
 ];
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
+const WRAPPER_INSET = 4.5;
 
 interface StripeProgressProps {
-  width: number;
+  /**
+   * Fixed bar width. Omit it to let the bar fill its parent (flex: 1); it then
+   * measures itself, since the Skia canvases need a concrete pixel width.
+   */
+  width?: number;
   height: number;
   progress: SharedValue<number>;
   stripeWidth?: number;
@@ -90,13 +95,23 @@ const createStripeElements = (
 };
 
 const StripeProgress: React.FC<StripeProgressProps> = ({
-  width,
+  width: fixedWidth,
   height,
   progress,
   stripeWidth = 10,
   stripeSpeed = 2000,
   compression = 2,
 }) => {
+  const [measuredWidth, setMeasuredWidth] = useState(0);
+  const isFlexible = fixedWidth === undefined;
+  // The wrapper adds WRAPPER_INSET around the inner bar (borders + gap).
+  const width = isFlexible
+    ? Math.max(0, measuredWidth - WRAPPER_INSET)
+    : fixedWidth;
+  const onWrapperLayout = useCallback((event: LayoutChangeEvent) => {
+    const next = event.nativeEvent.layout.width;
+    setMeasuredWidth(prev => (prev === next ? prev : next));
+  }, []);
   const offsetX = useSharedValue(0);
   const displayText = useDerivedValue(() => `${Math.round(progress.value)}%`);
   const stripeTravelDistance = stripeWidth * 4;
@@ -144,9 +159,11 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
 
   return (
     <View
+      onLayout={isFlexible ? onWrapperLayout : undefined}
       style={[
         styles.wrapper,
-        {width: width + 4.5, height: height + 4.5, borderRadius: height},
+        isFlexible ? styles.flexible : {width: width + WRAPPER_INSET},
+        {height: height + WRAPPER_INSET, borderRadius: height},
       ]}>
       <View style={[styles.container, {width, height, borderRadius: height}]}>
         <Animated.View style={[styles.progressFill, progressFillStyle]}>
@@ -182,6 +199,9 @@ const StripeProgress: React.FC<StripeProgressProps> = ({
 };
 
 const styles = StyleSheet.create({
+  flexible: {
+    flex: 1,
+  },
   wrapper: {
     borderWidth: 1,
     borderColor: '#cbabeec0',

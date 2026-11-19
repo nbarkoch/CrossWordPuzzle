@@ -1,12 +1,17 @@
 import React from 'react';
 import Animated, {FadeInDown, SharedValue} from 'react-native-reanimated';
-import {FlatList, StyleSheet, Text, View, Dimensions} from 'react-native';
+import {FlatList, StyleSheet, Text, View} from 'react-native';
 import {WordSequence} from '~/utils/types';
 import {normalizeWord} from '~/utils/generate';
 import StripeProgress from './StripeProgression';
 import LinearGradient from 'react-native-linear-gradient';
 
-const {width} = Dimensions.get('window');
+/**
+ * Initial estimate of this panel's height, used only until the real height is
+ * measured (GridContent reports it via onLayout and the grid sizes itself
+ * around it).
+ */
+export const WORDS_PANEL_HEIGHT = 115;
 
 type WordStatusDisplayProps = {
   normalizedPlacedWords: string[];
@@ -69,7 +74,6 @@ const WordStatusDisplay = ({
             </Text>
           </View>
           <StripeProgress
-            width={Math.min(250, width * 0.48)}
             height={30}
             progress={progress}
             stripeWidth={6}
@@ -94,13 +98,14 @@ const WordStatusDisplay = ({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    justifyContent: 'flex-end',
     width: '100%',
+    gap: 5,
   },
   progressShell: {
-    width: width - 46,
+    alignSelf: 'stretch',
+    marginHorizontal: 23,
     minHeight: 46,
-    alignSelf: 'center',
     marginBottom: 6,
     borderRadius: 16,
     borderWidth: 1,
@@ -109,14 +114,15 @@ const styles = StyleSheet.create({
     elevation: 3,
     shadowColor: '#000',
     overflow: 'hidden',
+    flexDirection: 'row',
   },
   progressGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingStart: 20,
     paddingEnd: 10,
     paddingVertical: 6,
+    flex: 1,
   },
   wordCountContainer: {
     minWidth: 112,
@@ -130,9 +136,8 @@ const styles = StyleSheet.create({
   },
 
   listContainer: {
-    width: width,
-    flex: 1,
-    paddingBottom: 5,
+    width: '100%',
+    paddingBottom: 15,
   },
   scrollContent: {
     paddingHorizontal: 12,

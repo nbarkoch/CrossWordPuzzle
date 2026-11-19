@@ -26,7 +26,6 @@ import {
 } from '~/utils/blockCalcs';
 import {
   GRID_FRAME_PADDING,
-  GRID_TOP,
   INITIAL_DIRECTION,
   SEQUENCE_COLORS,
 } from '~/utils/consts';
@@ -35,7 +34,6 @@ import SuccessAnimation, {SuccessAnimationRef} from './SuccessAnimation';
 import UnifiedWordsLines from './UnifiedWordsLines';
 import EndGameDialog from './dialogs/GameEndDialog';
 import GameHeader from './GameHeader';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {runOnJS} from 'react-native-worklets';
 import {Banner} from './AdBanner';
 import LinearGradient from 'react-native-linear-gradient';
@@ -64,6 +62,10 @@ type GridConfig = {
 type GridContentProps = {
   gridData: GridConfig;
   blockSize: number;
+  /** Y of the grid cells inside the screen container (centered by the parent). */
+  gridTop: number;
+  /** Reports the words panel's real height so the grid can leave room for it. */
+  onWordsPanelHeight: (height: number) => void;
   onGameReset: () => void;
   onGoHome: () => void;
   category: CategorySelection;
@@ -74,6 +76,8 @@ type GridContentProps = {
 export default function GridContent({
   gridData,
   blockSize,
+  gridTop,
+  onWordsPanelHeight,
   onGameReset,
   onGoHome,
   category,
@@ -91,7 +95,6 @@ export default function GridContent({
   } = gridData;
   const [sequences, setSequences] = useState<WordSequence[]>(initialSequences);
   const [endDialog, setEndDialog] = useState<boolean>(false);
-  const insets = useSafeAreaInsets();
 
   const [foundLetters, setFoundLetters] = useState<{[key: string]: boolean}>(
     () => buildFoundLetters(initialSequences),
@@ -333,7 +336,7 @@ export default function GridContent({
       selectedBlocks.value,
       SEQUENCE_COLORS[colorIndex].active,
       gridHorizontalPadding,
-      GRID_TOP,
+      gridTop,
     );
 
     progress.value = withTiming(
@@ -342,6 +345,7 @@ export default function GridContent({
     );
   }, [
     gridHorizontalPadding,
+    gridTop,
     placedWords.length,
     progress,
     selectedBlocks.value,
@@ -353,12 +357,10 @@ export default function GridContent({
     .minDistance(1)
     .onStart(event => {
       'worklet';
-      const col = Math.floor(
-        (event.absoluteX - gridHorizontalPadding) / blockSize,
-      );
-      const row = Math.floor(
-        (event.absoluteY - GRID_TOP - insets.top) / blockSize,
-      );
+      // x / y are relative to the grid view itself, so no inset or padding
+      // math is needed (and nothing can drift if the layout above changes).
+      const col = Math.floor(event.x / blockSize);
+      const row = Math.floor(event.y / blockSize);
       if (row >= 0 && row < gridRows && col >= 0 && col < gridCols) {
         startBlock.value = {row, col};
         currentBlock.value = {row, col};
@@ -379,12 +381,8 @@ export default function GridContent({
         return;
       }
 
-      const col = Math.floor(
-        (event.absoluteX - gridHorizontalPadding) / blockSize,
-      );
-      const row = Math.floor(
-        (event.absoluteY - GRID_TOP - insets.top) / blockSize,
-      );
+      const col = Math.floor(event.x / blockSize);
+      const row = Math.floor(event.y / blockSize);
 
       if (
         row >= 0 &&
@@ -493,7 +491,7 @@ export default function GridContent({
           style={[
             styles.gridShadowContainer,
             {
-              top: GRID_TOP,
+              top: gridTop,
               left: gridHorizontalPadding,
               right: gridHorizontalPadding,
               width: gridDimensions.width,
@@ -572,10 +570,10 @@ export default function GridContent({
         <SuccessAnimation ref={successAnimationRef} blockSize={blockSize} />
       </View>
       <View
-        style={[
-          styles.bottomContainer,
-          {top: GRID_TOP + gridDimensions.height + 14},
-        ]}>
+        style={styles.bottomContainer}
+        onLayout={event =>
+          onWordsPanelHeight(event.nativeEvent.layout.height)
+        }>
         <WordStatusDisplay
           normalizedPlacedWords={normalizedPlacedWords}
           foundSequences={sequences}

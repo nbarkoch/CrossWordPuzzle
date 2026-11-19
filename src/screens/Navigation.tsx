@@ -10,7 +10,7 @@ import Settings from './Settings';
 import WordWave from './WordWave';
 import {CategorySelection, GameMode, GridSize} from '~/utils/types';
 import {StyleSheet, View} from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useContentInsets} from '~/utils/safeLayout';
 
 export type RootStackParamList = {
   MainMenu: undefined;
@@ -30,29 +30,37 @@ export type RootStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-
 export default function Navigation() {
-  const insets = useSafeAreaInsets();
+  const insets = useContentInsets();
   return (
-    <View style={[styles.safeAreaContainer, {paddingTop: insets.top}]}>
-      <NavigationContainer>
-        <Stack.Navigator
-          screenOptions={{
-            headerShown: false,
-            animation: 'fade_from_bottom',
-          }}>
-          <Stack.Screen name="MainMenu" component={MainMenu} />
-          <Stack.Screen name="Game" component={Game} />
-          <Stack.Screen name="Settings" component={Settings} />
-          <Stack.Screen name="GameOptions" component={GameOptions} />
-          <Stack.Screen name="Leaderboard" component={Leaderboard} />
-          <Stack.Screen
-            name="WordWave"
-            component={WordWave}
-            options={{gestureEnabled: false}}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
+    <View
+      style={[
+        styles.safeAreaHorizontal,
+        {
+          paddingLeft: insets.left,
+          paddingRight: insets.right,
+        },
+      ]}>
+      <View style={[styles.safeAreaContainer, {paddingTop: insets.top}]}>
+        <NavigationContainer>
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              animation: 'fade_from_bottom',
+            }}>
+            <Stack.Screen name="MainMenu" component={MainMenu} />
+            <Stack.Screen name="Game" component={Game} />
+            <Stack.Screen name="Settings" component={Settings} />
+            <Stack.Screen name="GameOptions" component={GameOptions} />
+            <Stack.Screen name="Leaderboard" component={Leaderboard} />
+            <Stack.Screen
+              name="WordWave"
+              component={WordWave}
+              options={{gestureEnabled: false}}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </View>
     </View>
   );
 }
@@ -62,5 +70,10 @@ const styles = StyleSheet.create({
     height: '100%',
     width: '100%',
     backgroundColor: '#4A20A4',
+  },
+  safeAreaHorizontal: {
+    height: '100%',
+    width: '100%',
+    backgroundColor: '#18083d',
   },
 });

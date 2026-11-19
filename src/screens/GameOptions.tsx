@@ -4,7 +4,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
   ScrollView,
   Pressable,
 } from 'react-native';
@@ -22,6 +21,7 @@ import {Banner} from '~/components/AdBanner';
 import {CATEGORIES_ICONS} from '~/utils/consts';
 import {RouteProp, useRoute} from '@react-navigation/native';
 import {prepareGrid} from '~/utils/gridGenerationCache';
+import {INITIAL_CONTENT_WIDTH} from '~/utils/safeLayout';
 import DialogButton from '~/components/dialogs/DialogButton';
 import {GRADIENT_VARIANTS} from '~/components/dialogs/GradientSurface';
 import SelectableCard from '~/components/SelectableCard';
@@ -29,7 +29,7 @@ import SmallStar from '~/components/decorations/star';
 import {ArrowLeft} from '~/components/decorations/arrows';
 import LineDecoration from '~/components/decorations/lineDecoration';
 
-const {width} = Dimensions.get('window');
+const width = INITIAL_CONTENT_WIDTH;
 const ITEM_SPACING = 12;
 const ITEMS_PER_ROW = 3;
 // Horizontal chrome per side: screen padding (16) + card border (5+1) + list
