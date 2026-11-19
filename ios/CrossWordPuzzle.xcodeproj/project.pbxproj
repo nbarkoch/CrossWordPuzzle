@@ -42,7 +42,7 @@
 		9FB8D4A2B9C959FC37A00BEB /* Pods_CrossWordPuzzle.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_CrossWordPuzzle.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		ED87A23F7CBB8A59B1865A88 /* Pods_CrossWordPuzzle_CrossWordPuzzleTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_CrossWordPuzzle_CrossWordPuzzleTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		F3F63F8F7E6705CD05C0E433 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = CrossWordPuzzle/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		F3F63F8F7E6705CD05C0E433 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = CrossWordPuzzle/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -498,6 +498,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Q3XA53D95Q;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = CrossWordPuzzle/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -525,6 +526,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Q3XA53D95Q;
 				INFOPLIST_FILE = CrossWordPuzzle/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
